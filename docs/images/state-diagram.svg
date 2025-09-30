@@ -65,7 +65,7 @@ link ConfigError to NotifyError--><path d="M1535.48,1524.3131 C1515.56,1549.4531
 link ValidationError to NotifyError--><path d="M1656.66,1523.9831 C1621.94,1546.7731 1579,1584.5431 1579,1631.9531 C1579,1631.9531 1579,1631.9531 1579,2157.9531 C1579,2188.3331 1544.44,2174.4431 1515,2181.9531 C1327.97,2229.6831 1273.86,2203.0831 1085,2242.9531 C1073.81,2245.3131 1061.93,2248.3331 1050.7,2251.4331 " fill="none" id="ValidationError-&gt;NotifyError" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="1045.6,2252.8631,1055.3438,2254.298,1050.4162,2251.5197,1053.1944,2246.5921,1045.6,2252.8631" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[4e9087d398c90a5bb94b0dacdd12068a]
 link UpdateConfig to GMN368--><path d="M586.76,2242.7431 C600.97,2231.0931 619.41,2218.5231 638.5,2212.4531 C724.48,2185.1231 955.51,2197.5931 1044.5,2212.4531 C1085,2219.2131 1128.95,2234.9031 1160.76,2247.8831 " fill="none" id="UpdateConfig-GMN368" style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 7.0,7.0;"/><!--MD5=[61afd0819f1003975ad824fbf5f428cb]
 link ReloadServer to GMN371--><path d="M369.91,2369.6931 C388.82,2355.4231 414.53,2338.9731 440.5,2331.4531 C569.43,2294.1331 912.45,2307.3931 1044.5,2331.4531 C1089.86,2339.7131 1138.89,2359.5431 1172.3,2374.8531 " fill="none" id="ReloadServer-GMN371" style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 7.0,7.0;"/><!--MD5=[aa36a1a4688220e115f9e65f4e12309f]
-link CreateBackup to GMN374--><path d="M593.61,2131.6631 C614.75,2117.3731 643.29,2100.9231 671.5,2093.4531 C831.75,2051.0231 882.44,2058.5331 1044.5,2093.4531 C1083.1,2101.7731 1123.86,2121.5831 1151.48,2136.8831 " fill="none" id="CreateBackup-GMN374" style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 7.0,7.0;"/><!--MD5=[8966b4180a93ea222320517c5310be0c]
+link CreateBackup to GMN374--><path d="M593.61,2131.6631 C614.75,2117.3731 643.29,2100.9231 671.5,2093.4531 C831.75,2051.0231 882.44,2058.5331 1044.5,2093.4531 C1083.1,2101.7731 1123.86,2121.5831 1151.48,2136.8831 " fill="none" id="CreateBackup-GMN374" style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 7.0,7.0;"/><!--MD5=[35d7f35d460aab7683270115f7a2b1ef]
 @startuml state-diagram
 skinparam backgroundColor #FAFAFA
 skinparam roundcorner 15
@@ -177,11 +177,11 @@ note right of CreateBackup : "Creates timestamped\nbackup of config file"
 
 @enduml
 
-PlantUML version 1.2020.02(Sun Mar 01 11:22:07 CET 2020)
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
 (GPL source distribution)
 Java Runtime: OpenJDK Runtime Environment
 JVM: OpenJDK 64-Bit Server VM
-Java Version: 21.0.8+9-Ubuntu-0ubuntu124.04.1
+Java Version: 11.0.28+6
 Operating System: Linux
 Default Encoding: UTF-8
 Language: en

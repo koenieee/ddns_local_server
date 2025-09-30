@@ -51,7 +51,7 @@ link ConsoleNotificationService to NotificationService--><path d="M2469.71,791.2
 link FileSystemConfigDiscovery to ConfigDiscoveryService--><path d="M326.21,791.0731 C372.39,813.2631 435.22,839.8831 494,852.9531 C961.5,956.9231 2385.57,974.6831 2975.16,977.5131 " fill="none" id="FileSystemConfigDiscovery-&gt;ConfigDiscoveryService" style="stroke: #A80036; stroke-width: 1.0; stroke-dasharray: 7.0,7.0;"/><polygon fill="none" points="2975.38,970.5231,2995.35,977.6131,2975.31,984.5231,2975.38,970.5231" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[3b6dae35c9782067ee98db91d941fe6d]
 link DdnsUpdateService to IpEntry--><path d="M5326.58,773.0431 C5601.38,790.0131 5959.92,819.0831 6100,860.9531 C6132.81,870.7631 6166.38,885.6331 6197.12,901.5131 " fill="none" id="DdnsUpdateService-&gt;IpEntry" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="6201.64,903.8631,6195.4965,896.1652,6197.2027,901.5586,6191.8093,903.2648,6201.64,903.8631" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[ac7f73dd83d3ad45715c2fcc50cab0d1]
 link DdnsUpdateService to WebServerConfig--><path d="M5326.6,779.3031 C5449.24,794.7131 5586.37,819.8731 5707,860.9531 C5753.36,876.7431 5801.25,902.8831 5839.37,926.4631 " fill="none" id="DdnsUpdateService-&gt;WebServerConfig" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="5843.97,929.3331,5838.4457,921.1795,5839.726,926.6896,5834.2159,927.9699,5843.97,929.3331" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[49763afa74bcea792ee85aa7b2d7b51e]
-link WebServerConfig to WebServerType--><path d="M5915,1028.8631 C5915,1053.4031 5915,1083.2031 5915,1108.4231 " fill="none" id="WebServerConfig-&gt;WebServerType" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="5915,1113.7331,5919,1104.7331,5915,1108.7331,5911,1104.7331,5915,1113.7331" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[1a3235a149224192a13f05cb70053f3d]
+link WebServerConfig to WebServerType--><path d="M5915,1028.8631 C5915,1053.4031 5915,1083.2031 5915,1108.4231 " fill="none" id="WebServerConfig-&gt;WebServerType" style="stroke: #A80036; stroke-width: 1.0;"/><polygon fill="#A80036" points="5915,1113.7331,5919,1104.7331,5915,1108.7331,5911,1104.7331,5915,1113.7331" style="stroke: #A80036; stroke-width: 1.0;"/><!--MD5=[08fa6c174149d8914db17ca176e6013c]
 @startuml clean-architecture
 skinparam backgroundColor #FAFAFA
 skinparam roundcorner 15
@@ -258,11 +258,11 @@ WebServerConfig - -> WebServerType
 
 @enduml
 
-PlantUML version 1.2020.02(Sun Mar 01 11:22:07 CET 2020)
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
 (GPL source distribution)
 Java Runtime: OpenJDK Runtime Environment
 JVM: OpenJDK 64-Bit Server VM
-Java Version: 21.0.8+9-Ubuntu-0ubuntu124.04.1
+Java Version: 11.0.28+6
 Operating System: Linux
 Default Encoding: UTF-8
 Language: en

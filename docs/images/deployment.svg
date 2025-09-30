@@ -100,7 +100,7 @@ link ip1 to more_ips--><!--MD5=[0e39223a9dcd461feda41a42af129925]
 link backup1 to backup2--><!--MD5=[61dc3431c70a5c55fdc84b0bdc7fcf58]
 link backup1 to more_backups--><!--MD5=[ca70524a05ca24607fcf2d8c320daf0b]
 link ipify to httpbin--><!--MD5=[98e576a0729ad865ca5bd3e55b77d0c2]
-link ipify to icanhazip--><!--MD5=[80e77fc8339371bcaf0501134cf868a1]
+link ipify to icanhazip--><!--MD5=[5f5813b413381ac6ae813d8b8b0897cd]
 @startuml deployment
 skinparam backgroundColor #FAFAFA
 skinparam roundcorner 15
@@ -251,11 +251,11 @@ note top of ip_services : "Multiple providers\nAutomatic failover\nHTTPS only"
 
 @enduml
 
-PlantUML version 1.2020.02(Sun Mar 01 11:22:07 CET 2020)
+PlantUML version 1.2020.02(Sun Mar 01 10:22:07 UTC 2020)
 (GPL source distribution)
 Java Runtime: OpenJDK Runtime Environment
 JVM: OpenJDK 64-Bit Server VM
-Java Version: 21.0.8+9-Ubuntu-0ubuntu124.04.1
+Java Version: 11.0.28+6
 Operating System: Linux
 Default Encoding: UTF-8
 Language: en
