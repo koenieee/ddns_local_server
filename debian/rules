@@ -32,7 +32,8 @@ override_dh_shlibdeps:
 	if [ "$(USE_CROSS)" = "true" ] && [ "$(CARGO_TARGET)" = "aarch64-unknown-linux-gnu" ]; then \
 		echo "Cross-compilation detected - skipping automatic dependency analysis for ARM64"; \
 		echo "Dependencies will be resolved at runtime on target system"; \
-		echo "Skipping dh_shlibdeps to avoid cross-architecture library detection issues"; \
+		echo "Creating empty shlibs:Depends to avoid substitution warnings"; \
+		echo "shlibs:Depends=" >> debian/ddns-updater.substvars; \
 	else \
 		echo "Native compilation - running standard dependency analysis"; \
 		dh_shlibdeps 2>/dev/null || dh_shlibdeps --dpkg-shlibdeps-params="--ignore-missing-info --warnings=1"; \
