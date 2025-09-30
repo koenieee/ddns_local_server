@@ -1,0 +1,46 @@
+[Unit]
+Description=DDNS Updater - Nginx Allow List Manager (%i)
+Documentation=https://github.com/koenieee/ddns_local_server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+
+# Template variables (customize these):
+# %i = instance name (e.g., google-com, example-com)
+# Set these in environment file: /etc/default/ddns-updater-%i
+
+EnvironmentFile=-/etc/default/ddns-updater-%i
+ExecStartPre=/bin/sh -c 'echo "DDNS Configuration [%i]: Host=${DDNS_HOST:-google.com}, Config=${DDNS_CONFIG_DIR:-/etc/nginx/sites-available}, Instance=%i"'
+ExecStart=/usr/local/bin/ddns_updater ${DDNS_ARGS}
+
+# Default environment
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=DDNS_ARGS=--host google.com --config-dir /etc/nginx/sites-available --backup-dir /var/backups/nginx
+Environment=DDNS_HOST=google.com
+Environment=DDNS_CONFIG_DIR=/etc/nginx/sites-available
+Environment=DDNS_PATTERN=*.conf
+Environment=DDNS_BACKUP_DIR=/var/backups/nginx
+Environment=DDNS_INSTANCE=%i
+
+WorkingDirectory=/usr/local/bin
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/nginx /etc/nginx /var/lib/ddns-updater
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+
+[Install]
+WantedBy=multi-user.target

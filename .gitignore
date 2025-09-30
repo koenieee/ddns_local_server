@@ -1,0 +1,77 @@
+# Rust build artifacts
+/target
+Cargo.lock
+
+# Debian packaging artifacts
+*.deb
+*.ddeb
+*.buildinfo
+*.changes
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/ddns-updater/
+debian/ddns-updater.debhelper.log
+debian/ddns-updater.substvars
+debian/.debhelper/
+debian/tmp/
+
+# Build and packaging logs
+build.log
+package.log
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.#*
+#*#
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.orig
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Configuration files (may contain sensitive data)
+*.conf.local
+*.config.local
+config/*.local
+test_configs/*.real
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# Runtime data
+pid/
+*.pid
+*.sock
+
+# Systemd related temporary files
+systemd/*.test
+systemd/*.tmp
+systemd/*~
+systemd/.#*
+systemd/test-*
+systemd/debug-*
+
+# Documentation build artifacts
+*.html
+*.pdf
+docs/build/
+
+# Development and testing artifacts
+test-output/
+*.test.log
+coverage.out

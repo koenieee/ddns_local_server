@@ -1,0 +1,102 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  rust-check:
+    name: Rust Quality Checks
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        components: rustfmt, clippy
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    
+    - name: Check formatting
+      run: cargo fmt --all -- --check
+      
+    - name: Run Clippy lints
+      run: cargo clippy --all-targets --all-features -- -D warnings
+      
+    - name: Run tests
+      run: cargo test --verbose --all-features
+      
+    - name: Run comprehensive test suite
+      run: |
+        chmod +x scripts/test_all.sh
+        ./scripts/test_all.sh
+
+  debian-package:
+    name: Build Debian Package
+    runs-on: ubuntu-latest
+    needs: rust-check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target/
+        key: ${{ runner.os }}-debian-cargo-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Install Debian build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          debhelper \
+          fakeroot \
+          devscripts
+          
+    - name: Build Debian package
+      run: |
+        chmod +x build-deb.sh
+        ./build-deb.sh
+        
+    - name: Prepare package for upload
+      run: |
+        echo "=== Package Files ==="
+        ls -la ../ddns-updater*.deb || echo "No .deb files found"
+        if ls ../ddns-updater_*.deb 1> /dev/null 2>&1; then
+          echo "=== Copying package for upload ==="
+          cp ../ddns-updater_*.deb ./
+          ls -la *.deb
+        fi
+        
+    - name: Upload Debian package
+      uses: actions/upload-artifact@v4
+      with:
+        name: debian-package
+        path: "*.deb"
+        retention-days: 90

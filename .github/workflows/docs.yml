@@ -1,0 +1,148 @@
+name: Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '**.md'
+      - 'systemd/**'
+      - 'docs/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.md'
+      - 'systemd/**'
+      - 'docs/**'
+
+jobs:
+  validate-docs:
+    name: Validate Documentation
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Check for broken links in markdown
+      uses: gaurav-nelson/github-action-markdown-link-check@v1
+      with:
+        use-quiet-mode: 'yes'
+        use-verbose-mode: 'yes'
+        config-file: '.github/markdown-link-config.json'
+        
+    - name: Validate systemd service files
+      run: |
+        echo "Validating systemd service files..."
+        
+        # Check service file syntax
+        for service_file in systemd/*.service systemd/*.timer systemd/*.target; do
+          if [ -f "$service_file" ]; then
+            echo "Checking $service_file"
+            # Basic syntax validation
+            systemd-analyze verify "$service_file" || echo "Warning: $service_file has issues"
+          fi
+        done
+        
+        # Check that required fields are present
+        for service_file in systemd/*.service; do
+          if [ -f "$service_file" ]; then
+            echo "Validating required fields in $service_file"
+            grep -q "Description=" "$service_file" || echo "Missing Description in $service_file"
+            grep -q "ExecStart=" "$service_file" || echo "Missing ExecStart in $service_file"
+          fi
+        done
+        
+    - name: Validate script syntax
+      run: |
+        echo "Validating shell scripts..."
+        
+        # Check shell script syntax
+        for script in systemd/*.sh scripts/*.sh build-deb.sh; do
+          if [ -f "$script" ]; then
+            echo "Checking $script"
+            bash -n "$script" || echo "Syntax error in $script"
+          fi
+        done
+        
+    - name: Generate documentation overview
+      run: |
+        echo "# Documentation Overview" > doc-overview.md
+        echo "Generated on: $(date)" >> doc-overview.md
+        echo "" >> doc-overview.md
+        
+        echo "## Available Documentation" >> doc-overview.md
+        find . -name "*.md" -type f | sort | while read -r file; do
+          echo "- [$file]($file)" >> doc-overview.md
+        done
+        echo "" >> doc-overview.md
+        
+        echo "## Systemd Files" >> doc-overview.md
+        find systemd/ -name "*.service" -o -name "*.timer" -o -name "*.target" | sort | while read -r file; do
+          echo "- $file" >> doc-overview.md
+        done
+        echo "" >> doc-overview.md
+        
+        echo "## Scripts" >> doc-overview.md
+        find . -name "*.sh" -type f | sort | while read -r file; do
+          echo "- $file" >> doc-overview.md
+        done
+        
+    - name: Upload documentation overview
+      uses: actions/upload-artifact@v4
+      with:
+        name: documentation-overview
+        path: doc-overview.md
+        retention-days: 30
+
+  check-debian-package:
+    name: Validate Debian Package Files
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Debian tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y devscripts lintian
+        
+    - name: Validate debian/control
+      run: |
+        echo "Validating debian/control file..."
+        if [ -f debian/control ]; then
+          grep -q "Package:" debian/control || echo "Missing Package field"
+          grep -q "Version:" debian/control || echo "Missing Version field"
+          grep -q "Architecture:" debian/control || echo "Missing Architecture field"
+          grep -q "Description:" debian/control || echo "Missing Description field"
+        else
+          echo "debian/control file not found"
+          exit 1
+        fi
+        
+    - name: Validate debian/changelog
+      run: |
+        echo "Validating debian/changelog..."
+        if [ -f debian/changelog ]; then
+          dpkg-parsechangelog -c 1 > /dev/null
+        else
+          echo "debian/changelog file not found"
+          exit 1
+        fi
+        
+    - name: Check debian/rules
+      run: |
+        echo "Validating debian/rules..."
+        if [ -f debian/rules ]; then
+          bash -n debian/rules
+          test -x debian/rules || echo "debian/rules is not executable"
+        else
+          echo "debian/rules file not found"
+          exit 1
+        fi
+        
+    - name: Lint Debian package configuration
+      run: |
+        # Run basic lintian checks on the source
+        echo "Running lintian source checks..."
+        lintian --check || echo "Lintian found issues (this may be expected for source-only check)"

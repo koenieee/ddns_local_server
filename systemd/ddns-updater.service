@@ -1,0 +1,37 @@
+[Unit]
+Description=DDNS Updater - Nginx Allow List Manager
+Documentation=https://github.com/koenieee/ddns_local_server
+After=network-online.target
+Wants=network-online.target
+Wants=ddns-backup-cleanup.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+ExecStartPre=/bin/sh -c 'echo "DDNS Configuration: Host=${DDNS_HOST:-google.com}, Config=${DDNS_CONFIG_DIR:-/etc/nginx/sites-available}, Interval=${DDNS_INTERVAL:-5min}, Backup=${DDNS_BACKUP_DIR:-/var/backups/nginx}"'
+ExecStart=/usr/local/bin/ddns_updater --host google.com --config-dir /etc/nginx/sites-available --pattern "*.conf" --backup-dir /var/backups/nginx
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+Environment=DDNS_HOST=google.com
+Environment=DDNS_CONFIG_DIR=/etc/nginx/sites-available
+Environment=DDNS_PATTERN=*.conf
+Environment=DDNS_BACKUP_DIR=/var/backups/nginx
+Environment=DDNS_INTERVAL=5min
+WorkingDirectory=/usr/local/bin
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/backups/nginx /etc/nginx
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+RestrictNamespaces=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,34 @@
+# Post-removal script for ddns-updater package
+
+#!/bin/bash
+set -e
+
+case "$1" in
+    purge)
+        # Remove user and group if they exist
+        if getent passwd ddns-updater >/dev/null 2>&1; then
+            deluser --system ddns-updater 2>/dev/null || true
+        fi
+        
+        # Remove configuration and data directories on purge
+        rm -rf /etc/ddns-updater
+        rm -rf /var/lib/ddns-updater
+        rm -rf /var/log/ddns-updater
+        
+        echo "DDNS Updater configuration and data have been completely removed."
+        ;;
+        
+    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+        # Reload systemd daemon after service files are removed
+        systemctl daemon-reload || true
+        ;;
+        
+    *)
+        echo "postrm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

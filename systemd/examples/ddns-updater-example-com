@@ -1,0 +1,4 @@
+# DDNS Updater Configuration for example.com
+# This file should be placed at: /etc/default/ddns-updater-example-com
+
+DDNS_ARGS="--host example.com --config /etc/nginx/sites-available/example.com.conf --backup-dir /var/backups/nginx/example-com"

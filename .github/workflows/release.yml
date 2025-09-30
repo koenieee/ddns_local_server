@@ -1,0 +1,147 @@
+name: Release Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  prepare-release:
+    name: Prepare Release
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Configure Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+    - name: Validate version format
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9-]+)?$ ]]; then
+          echo "Error: Version must be in format v1.2.3 or v1.2.3-beta"
+          exit 1
+        fi
+        
+    - name: Update Cargo.toml version
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        # Remove 'v' prefix for Cargo.toml
+        CARGO_VERSION="${VERSION#v}"
+        
+        # Update version in Cargo.toml
+        sed -i "s/^version = \".*\"/version = \"$CARGO_VERSION\"/" Cargo.toml
+        
+        echo "Updated Cargo.toml version to: $CARGO_VERSION"
+        
+    - name: Update debian/changelog
+      run: |
+        VERSION="${{ github.event.inputs.version }}"
+        CARGO_VERSION="${VERSION#v}"
+        DATE=$(date -R)  # RFC 2822 format required by Debian
+        
+        # Create new changelog entry
+        {
+          echo "ddns-updater ($CARGO_VERSION-1) unstable; urgency=medium"
+          echo ""
+          echo "  * Release $VERSION"
+          echo "  * Automated release build"
+          echo ""
+          echo " -- GitHub Actions <action@github.com>  $DATE"
+          echo ""
+        } > debian/changelog.new
+        
+        # Append old changelog
+        if [ -f debian/changelog ]; then
+          cat debian/changelog >> debian/changelog.new
+        fi
+        
+        mv debian/changelog.new debian/changelog
+        
+        echo "Updated debian/changelog for version: $CARGO_VERSION-1"
+        
+    - name: Run tests before release
+      run: |
+        # Install Rust
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+        source $HOME/.cargo/env
+        
+        # Run comprehensive tests to make sure everything works
+        cargo test --verbose
+        cargo check --verbose
+        
+        # Run full test suite including CLI integration tests
+        chmod +x scripts/test_all.sh
+        ./scripts/test_all.sh
+        
+    - name: Commit version updates
+      run: |
+        git add Cargo.toml debian/changelog Cargo.lock
+        git commit -m "chore: bump version to ${{ github.event.inputs.version }}" || echo "No changes to commit"
+        
+    - name: Create and push tag
+      run: |
+        git tag -a "${{ github.event.inputs.version }}" -m "Release ${{ github.event.inputs.version }}"
+        git push origin "${{ github.event.inputs.version }}"
+        git push origin main
+        
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        name: Release ${{ github.event.inputs.version }}
+        prerelease: ${{ github.event.inputs.prerelease }}
+        generate_release_notes: true
+        body: |
+          ## DDNS Updater ${{ github.event.inputs.version }}
+          
+          This is an automated release created from the Release Management workflow.
+          
+          ### What's Changed
+          - See the full changelog below for detailed changes
+          
+          ### Downloads
+          The following assets will be available once the CI build completes:
+          - Linux AMD64 binary
+          - Linux ARM64 binary  
+          - Linux MUSL binary
+          - Debian package (.deb)
+          
+          ### Installation
+          
+          #### Using Debian Package (Recommended)
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater_*.deb
+          sudo apt install ./ddns-updater_*.deb
+          ```
+          
+          #### Using Binary
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater-linux-amd64
+          chmod +x ddns-updater-linux-amd64
+          sudo mv ddns-updater-linux-amd64 /usr/local/bin/ddns-updater
+          ```
+          
+          ### Configuration
+          After installation, run the setup script:
+          ```bash
+          sudo /usr/share/ddns-updater/install-systemd.sh
+          ```
+          
+          See the [documentation](https://github.com/${{ github.repository }}) for detailed configuration instructions.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

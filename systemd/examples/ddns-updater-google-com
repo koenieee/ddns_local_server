@@ -1,0 +1,15 @@
+# DDNS Updater Configuration for google.com
+# This file should be placed at: /etc/default/ddns-updater-google-com
+
+# DDNS_ARGS contains all command line arguments for the updater
+DDNS_ARGS="--host google.com --config-dir /etc/nginx/sites-available --pattern *.conf --backup-dir /var/backups/nginx --verbose"
+
+# Alternative examples:
+# Single config file:
+# DDNS_ARGS="--host google.com --config /etc/nginx/sites-available/mysite.conf --backup-dir /var/backups/nginx"
+
+# Different host:
+# DDNS_ARGS="--host example.com --config-dir /etc/nginx/sites-available --backup-dir /var/backups/nginx"
+
+# Custom pattern:
+# DDNS_ARGS="--host mydomain.com --config-dir /etc/nginx/conf.d --pattern *mydomain* --backup-dir /var/backups/nginx"

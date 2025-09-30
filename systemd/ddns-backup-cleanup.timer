@@ -1,0 +1,14 @@
+[Unit]
+Description=DDNS Updater - Backup Cleanup Timer
+Requires=ddns-backup-cleanup.service
+PartOf=ddns-updater.timer
+After=ddns-updater.timer
+
+[Timer]
+# Run daily at 3:00 AM
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1800
+
+[Install]
+WantedBy=timers.target

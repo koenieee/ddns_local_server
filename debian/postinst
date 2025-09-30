@@ -1,0 +1,105 @@
+# Post-installation script for ddns-updater package
+
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        # Create ddns-updater system user if it doesn't exist
+        if ! getent passwd ddns-updater >/dev/null 2>&1; then
+            adduser --system --group --home /var/lib/ddns-updater \
+                    --shell /bin/false --gecos "DDNS Updater Service" \
+                    ddns-updater
+        fi
+        
+        # Create necessary directories with proper permissions
+        mkdir -p /var/lib/ddns-updater
+        mkdir -p /var/log/ddns-updater
+        mkdir -p /etc/ddns-updater
+        
+        # Set ownership and permissions
+        chown ddns-updater:ddns-updater /var/lib/ddns-updater
+        chown ddns-updater:ddns-updater /var/log/ddns-updater
+        chown root:ddns-updater /etc/ddns-updater
+        
+        chmod 750 /var/lib/ddns-updater
+        chmod 750 /var/log/ddns-updater
+        chmod 750 /etc/ddns-updater
+        
+        # Reload systemd daemon to recognize new services
+        systemctl daemon-reload || true
+        
+        echo ""
+        echo "DDNS Updater has been installed successfully!"
+        echo ""
+        
+        # Ask user if they want to run the installation script
+        if [ "$DEBIAN_FRONTEND" != "noninteractive" ]; then
+            while true; do
+                echo -n "Would you like to run the interactive setup script now? [Y/n]: "
+                read -r response
+                case $response in
+                    [Yy]* | "" )
+                        echo ""
+                        echo "Running interactive setup..."
+                        if /usr/share/ddns-updater/install-systemd.sh; then
+                            echo ""
+                            echo "✅ DDNS Updater setup completed successfully!"
+                            echo ""
+                            echo "Service status:"
+                            systemctl --no-pager status ddns-updater.target 2>/dev/null || true
+                            echo ""
+                            echo "To view logs: sudo journalctl -u ddns-updater.service -f"
+                            echo "To manage services: sudo systemctl {start|stop|status} ddns-updater.target"
+                        else
+                            echo ""
+                            echo "⚠️  Setup script encountered an issue. You can run it manually:"
+                            echo "  sudo /usr/share/ddns-updater/install-systemd.sh"
+                        fi
+                        break
+                        ;;
+                    [Nn]* )
+                        echo ""
+                        echo "Setup skipped. To configure the service later:"
+                        echo "  sudo /usr/share/ddns-updater/install-systemd.sh"
+                        echo ""
+                        echo "For advanced multi-host configuration:"
+                        echo "  sudo /usr/share/ddns-updater/install-systemd-advanced.sh"
+                        echo ""
+                        echo "Configuration files should be placed in /etc/ddns-updater/"
+                        echo "Logs will be written to /var/log/ddns-updater/"
+                        break
+                        ;;
+                    * )
+                        echo "Please answer yes or no."
+                        ;;
+                esac
+            done
+        else
+            # Non-interactive installation
+            echo "Non-interactive installation detected."
+            echo ""
+            echo "To configure and start the service:"
+            echo "  sudo /usr/share/ddns-updater/install-systemd.sh"
+            echo ""
+            echo "For advanced multi-host configuration:"
+            echo "  sudo /usr/share/ddns-updater/install-systemd-advanced.sh"
+            echo ""
+            echo "Configuration files should be placed in /etc/ddns-updater/"
+            echo "Logs will be written to /var/log/ddns-updater/"
+        fi
+        echo ""
+        ;;
+        
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+        
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

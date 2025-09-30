@@ -1,0 +1,8 @@
+[Unit]
+Description=DDNS Updater Service Group
+Documentation=man:systemd.special(7)
+Wants=ddns-updater.service ddns-backup-cleanup.service
+After=network.target
+
+[Install]
+WantedBy=multi-user.target

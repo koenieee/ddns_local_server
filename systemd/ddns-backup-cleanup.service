@@ -1,0 +1,38 @@
+[Unit]
+Description=DDNS Updater - Backup Cleanup Service
+Documentation=https://github.com/koenieee/ddns_local_server
+After=network.target
+PartOf=ddns-updater.service
+Requisite=ddns-updater.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+
+# Clean up backup files older than 30 days by default
+# This will be customized during installation
+ExecStartPre=/bin/sh -c 'echo "DDNS Cleanup Configuration: Directory=${DDNS_CLEANUP_BACKUP_DIR}, Retention=${DDNS_CLEANUP_RETENTION_DAYS} days, Verbose=${DDNS_CLEANUP_VERBOSE}"'
+ExecStart=/usr/local/bin/ddns-backup-cleanup --backup-dir /var/backups/nginx --days 30 --verbose
+Environment=DDNS_CLEANUP_BACKUP_DIR=/var/backups/nginx
+Environment=DDNS_CLEANUP_RETENTION_DAYS=30
+Environment=DDNS_CLEANUP_VERBOSE=true
+
+# Security settings
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictRealtime=true
+MemoryDenyWriteExecute=true
+LockPersonality=true
+RestrictSUIDSGID=true
+
+# Allow access to backup directories
+ReadWritePaths=/var/backups
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ddns-backup-cleanup

@@ -1,0 +1,12 @@
+ddns-updater (0.1.0-1) unstable; urgency=medium
+
+  * Initial release of DDNS updater
+  * Features include:
+    - Dynamic DNS updates for multiple providers
+    - Systemd service integration with service grouping
+    - Automated backup cleanup with configurable retention
+    - Interactive and advanced installation scripts
+    - Comprehensive logging and monitoring
+    - Configuration validation and testing utilities
+
+ -- koenieee <action@github.com>  Mon, 30 Sep 2025 00:00:00 +0000

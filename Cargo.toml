@@ -1,0 +1,8 @@
+[package]
+name = "ddns_updater"
+version = "0.1.0"
+edition = "2024"
+default-run = "ddns_updater"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive"] }

@@ -1,0 +1,33 @@
+# Pre-removal script for ddns-updater package
+
+#!/bin/bash
+set -e
+
+case "$1" in
+    remove|upgrade|deconfigure)
+        # Stop and disable services if they're running
+        systemctl stop ddns-updater.target 2>/dev/null || true
+        systemctl stop ddns-updater.service 2>/dev/null || true
+        systemctl stop ddns-updater.timer 2>/dev/null || true
+        systemctl stop ddns-backup-cleanup.service 2>/dev/null || true
+        systemctl stop ddns-backup-cleanup.timer 2>/dev/null || true
+        
+        systemctl disable ddns-updater.target 2>/dev/null || true
+        systemctl disable ddns-updater.service 2>/dev/null || true
+        systemctl disable ddns-updater.timer 2>/dev/null || true
+        systemctl disable ddns-backup-cleanup.service 2>/dev/null || true
+        systemctl disable ddns-backup-cleanup.timer 2>/dev/null || true
+        ;;
+        
+    failed-upgrade)
+        ;;
+        
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+        ;;
+esac
+
+#DEBHELPER#
+
+exit 0

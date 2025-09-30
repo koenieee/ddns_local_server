@@ -1,0 +1,36 @@
+Source: ddns-updater
+Section: net
+Priority: optional
+Maintainer: koenieee
+Build-Depends: debhelper-compat (= 13),
+               rustc,
+               cargo,
+               pkg-config
+Standards-Version: 4.6.0
+Homepage: https://github.com/koenieee/ddns_local_server
+Vcs-Git: https://github.com/koenieee/ddns_local_server.git
+Vcs-Browser: https://github.com/koenieee/ddns_local_server
+
+Package: ddns-updater
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+         systemd,
+         curl,
+         ca-certificates
+Recommends: nginx
+Description: Dynamic DNS updater with systemd integration
+ A robust Dynamic DNS updater written in Rust that supports multiple
+ DNS providers and includes comprehensive systemd service integration.
+ .
+ Features:
+  * Support for multiple DDNS providers
+  * Systemd service with timer-based scheduling
+  * Service grouping for unified management
+  * Automated backup cleanup with configurable retention
+  * Interactive installation and configuration
+  * Advanced multi-host deployment support
+  * Comprehensive logging and monitoring
+  * Configuration validation and testing utilities
+ .
+ The package includes systemd services, timers, and management scripts
+ for easy deployment and maintenance in production environments.

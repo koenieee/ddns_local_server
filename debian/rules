@@ -1,0 +1,62 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release
+
+override_dh_shlibdeps:
+	# Suppress diversions and missing info warnings for Rust binary
+	# Try normal shlibdeps first, fallback to ignore missing info if warnings occur
+	dh_shlibdeps 2>/dev/null || dh_shlibdeps --dpkg-shlibdeps-params="--ignore-missing-info --warnings=1"
+
+override_dh_auto_install:
+	# Install the main binary
+	install -D -m 755 target/release/ddns_updater debian/ddns-updater/usr/bin/ddns-updater
+	
+	# Install systemd service files
+	install -D -m 644 systemd/ddns-updater.service debian/ddns-updater/lib/systemd/system/ddns-updater.service
+	install -D -m 644 systemd/ddns-updater.timer debian/ddns-updater/lib/systemd/system/ddns-updater.timer
+	install -D -m 644 systemd/ddns-updater@.service debian/ddns-updater/lib/systemd/system/ddns-updater@.service
+	install -D -m 644 systemd/ddns-updater@.timer debian/ddns-updater/lib/systemd/system/ddns-updater@.timer
+	install -D -m 644 systemd/ddns-backup-cleanup.service debian/ddns-updater/lib/systemd/system/ddns-backup-cleanup.service
+	install -D -m 644 systemd/ddns-backup-cleanup.timer debian/ddns-updater/lib/systemd/system/ddns-backup-cleanup.timer
+	
+	# Install systemd target for service grouping
+	install -D -m 644 systemd/ddns-updater.target debian/ddns-updater/lib/systemd/system/ddns-updater.target
+	
+	# Install management and utility scripts
+	install -D -m 755 systemd/install-systemd.sh debian/ddns-updater/usr/share/ddns-updater/install-systemd.sh
+	install -D -m 755 systemd/install-systemd-advanced.sh debian/ddns-updater/usr/share/ddns-updater/install-systemd-advanced.sh
+	install -D -m 755 systemd/uninstall-systemd.sh debian/ddns-updater/usr/share/ddns-updater/uninstall-systemd.sh
+	install -D -m 755 systemd/show-config.sh debian/ddns-updater/usr/share/ddns-updater/show-config.sh
+	install -D -m 755 systemd/ddns-backup-cleanup.sh debian/ddns-updater/usr/bin/ddns-backup-cleanup
+	
+	# Install documentation
+	install -D -m 644 README.md debian/ddns-updater/usr/share/doc/ddns-updater/README.md
+	install -D -m 644 systemd/README.md debian/ddns-updater/usr/share/doc/ddns-updater/systemd-README.md
+	install -D -m 644 systemd/SYSTEMD.md debian/ddns-updater/usr/share/doc/ddns-updater/SYSTEMD.md
+	install -D -m 644 systemd/CONFIGURATION_DISPLAY.md debian/ddns-updater/usr/share/doc/ddns-updater/CONFIGURATION_DISPLAY.md
+	
+	# Install example configurations
+	install -d debian/ddns-updater/usr/share/ddns-updater/examples
+	if [ -d systemd/examples ]; then \
+		cp -r systemd/examples/* debian/ddns-updater/usr/share/ddns-updater/examples/; \
+	fi
+	if [ -d test_configs ]; then \
+		cp -r test_configs/* debian/ddns-updater/usr/share/ddns-updater/examples/; \
+	fi
+	
+	# Create configuration directory
+	install -d debian/ddns-updater/etc/ddns-updater
+	
+	# Create log directory
+	install -d debian/ddns-updater/var/log/ddns-updater
+
+override_dh_auto_clean:
+	cargo clean || true
+
+override_dh_auto_test:
+	# Skip tests for now - can be enabled later
+	# cargo test

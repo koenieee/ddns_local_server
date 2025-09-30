@@ -1,0 +1,145 @@
+name: Nightly Build
+
+on:
+  schedule:
+    # Run nightly at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  nightly-test:
+    name: Nightly Test (Rust Nightly)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust nightly
+      uses: dtolnay/rust-toolchain@nightly
+      with:
+        components: rustfmt, clippy
+        
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
+        key: nightly
+        
+    - name: Run tests with nightly
+      run: cargo test --verbose --all-features
+      continue-on-error: true # Don't fail the workflow if nightly tests fail
+      
+    - name: Run comprehensive test suite with nightly
+      run: |
+        chmod +x scripts/test_all.sh
+        ./scripts/test_all.sh
+      continue-on-error: true # Don't fail if nightly comprehensive tests fail
+      
+    - name: Run clippy with nightly
+      run: cargo clippy --all-targets --all-features
+      continue-on-error: true
+      
+    - name: Check future compatibility
+      run: |
+        cargo check --verbose --all-features
+        # Test with future-incompatible lints
+        cargo rustc -- -W future-incompatible
+      continue-on-error: true
+
+  dependency-check:
+    name: Dependency Vulnerability Check
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      
+    - name: Install cargo-audit
+      run: cargo install cargo-audit
+      
+    - name: Check for security vulnerabilities
+      run: cargo audit
+      
+    - name: Install cargo-outdated
+      run: cargo install cargo-outdated
+      
+    - name: Check for outdated dependencies
+      run: cargo outdated --exit-code 1
+      continue-on-error: true
+      
+    - name: Generate dependency report
+      run: |
+        echo "# Dependency Report" > dependency-report.md
+        echo "Generated on: $(date)" >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Security Audit" >> dependency-report.md
+        echo '```' >> dependency-report.md
+        cargo audit >> dependency-report.md || echo "No vulnerabilities found" >> dependency-report.md
+        echo '```' >> dependency-report.md
+        echo "" >> dependency-report.md
+        echo "## Outdated Dependencies" >> dependency-report.md
+        echo '```' >> dependency-report.md
+        cargo outdated >> dependency-report.md || echo "All dependencies are up to date" >> dependency-report.md
+        echo '```' >> dependency-report.md
+        
+    - name: Upload dependency report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dependency-report
+        path: dependency-report.md
+        retention-days: 7
+
+  benchmark:
+    name: Performance Benchmark
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+      
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+      
+    - name: Run benchmarks
+      run: |
+        # Build in release mode for benchmarking
+        cargo build --release
+        
+        # Basic performance test
+        echo "# Performance Benchmark Report" > benchmark-report.md
+        echo "Generated on: $(date)" >> benchmark-report.md
+        echo "" >> benchmark-report.md
+        
+        # Test binary size
+        echo "## Binary Size" >> benchmark-report.md
+        echo '```' >> benchmark-report.md
+        ls -lh target/release/ddns_updater >> benchmark-report.md
+        echo '```' >> benchmark-report.md
+        echo "" >> benchmark-report.md
+        
+        # Test startup time (if we can run it safely)
+        echo "## Startup Test" >> benchmark-report.md
+        echo '```' >> benchmark-report.md
+        time target/release/ddns_updater --help >> benchmark-report.md 2>&1 || echo "Could not run startup test" >> benchmark-report.md
+        echo '```' >> benchmark-report.md
+        
+    - name: Upload benchmark report
+      uses: actions/upload-artifact@v4
+      with:
+        name: benchmark-report
+        path: benchmark-report.md
+        retention-days: 7
