@@ -13,6 +13,10 @@ on:
       - '.github/workflows/generate-diagrams.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   generate-diagrams:
     runs-on: ubuntu-latest
@@ -27,15 +31,27 @@ jobs:
         distribution: 'temurin'
         java-version: '11'
     
-    - name: Generate PlantUML diagrams
-      uses: cloudbees/plantuml-github-action@master
-      with:
-        args: -v -tsvg -o ../../images docs/diagrams/*.puml
+    - name: Install PlantUML
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y plantuml graphviz
+        plantuml -version
+        echo "PlantUML installation complete"
     
-    - name: Generate PNG versions for better compatibility
-      uses: cloudbees/plantuml-github-action@master
-      with:
-        args: -v -tpng -o ../../images docs/diagrams/*.puml
+    - name: Create images directory
+      run: mkdir -p docs/images
+    
+    - name: Generate SVG diagrams
+      run: |
+        echo "Generating SVG diagrams..."
+        plantuml -tsvg -o ../images docs/diagrams/*.puml
+        echo "SVG generation complete"
+    
+    - name: Generate PNG diagrams  
+      run: |
+        echo "Generating PNG diagrams..."
+        plantuml -tpng -o ../images docs/diagrams/*.puml
+        echo "PNG generation complete"
     
     - name: List generated files
       run: |
