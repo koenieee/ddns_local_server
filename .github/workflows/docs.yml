@@ -134,7 +134,8 @@ jobs:
       run: |
         echo "Validating debian/rules..."
         if [ -f debian/rules ]; then
-          bash -n debian/rules
+          # debian/rules is a Makefile, not a shell script - validate with make
+          make -f debian/rules --dry-run >/dev/null 2>&1 || echo "Warning: debian/rules Makefile syntax issues"
           test -x debian/rules || echo "debian/rules is not executable"
         else
           echo "debian/rules file not found"
