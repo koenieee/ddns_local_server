@@ -21,39 +21,82 @@ A Rust-based Dynamic DNS (DDNS) updater that automatically manages nginx allow l
 
 ### Installation
 
+> **Available Installation Methods**: Currently only Debian packages and source builds are supported. Pre-built standalone binaries are not provided at this time.
+
 #### Option 1: Debian Package (Recommended)
+
+**For x86_64/AMD64 systems:**
 ```bash
-# Download latest release
-wget https://github.com/koenieee/ddns_local_server/releases/latest/download/ddns-updater_*.deb
+# Download latest release for AMD64
+wget https://github.com/koenieee/ddns_local_server/releases/latest/download/ddns-updater_*_amd64.deb
 
 # Install package
-sudo apt install ./ddns-updater_*.deb
+sudo dpkg -i ddns-updater_*_amd64.deb
+```
 
-# Run interactive setup
+**For ARM64/aarch64 systems:**
+```bash
+# Download latest release for ARM64
+wget https://github.com/koenieee/ddns_local_server/releases/latest/download/ddns-updater_*_arm64.deb
+
+# Install package
+sudo dpkg -i ddns-updater_*_arm64.deb
+```
+
+**Post-installation setup (both architectures):**
+```bash
+# Install dependencies if needed
+sudo apt-get install -f
+
+# Run setup (non-interactive mode available)
 sudo /usr/share/ddns-updater/install-systemd.sh
+
+# Or for automated/non-interactive setup:
+sudo /usr/share/ddns-updater/install-systemd-advanced.sh
 ```
 
-#### Option 2: Pre-built Binary
-```bash
-# Download binary for your architecture
-wget https://github.com/koenieee/ddns_local_server/releases/latest/download/ddns-updater-linux-amd64
+> **Note**: The interactive setup will ask for configuration details like your domain name, nginx config paths, and update intervals. Use the advanced script for automated deployments.
 
-# Make executable and install
-chmod +x ddns-updater-linux-amd64
-sudo mv ddns-updater-linux-amd64 /usr/local/bin/ddns-updater
-```
-
-#### Option 3: Build from Source
+#### Option 2: Build from Source
 ```bash
+# Install Rust toolchain
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source $HOME/.cargo/env
+
+# Clone and build
 git clone https://github.com/koenieee/ddns_local_server.git
 cd ddns_local_server
 cargo build --release
+
+# Install binary
 sudo cp target/release/ddns_updater /usr/local/bin/
+
+# Create systemd services manually (optional)
+sudo cp systemd/*.service /etc/systemd/system/
+sudo cp systemd/*.timer /etc/systemd/system/
+sudo systemctl daemon-reload
 ```
+
+### Installation Notes
+
+#### Setup Script Details
+- **Interactive setup** (`install-systemd.sh`): Prompts for configuration
+  - Domain/host name to monitor
+  - Nginx configuration file path
+  - Update interval (default: 5 minutes)
+  - Backup retention settings
+- **Advanced setup** (`install-systemd-advanced.sh`): Non-interactive with defaults
+  - Uses sensible defaults for automated deployments
+  - Can be customized by editing the script before running
 
 #### Testing Installation
 ```bash
+# Test the installation
 ddns_updater --host google.com --config /path/to/nginx.conf --verbose --no-reload
+
+# Check systemd status
+sudo systemctl status ddns-updater.service
+sudo systemctl status ddns-updater.timer
 ```
 
 ### Basic Usage

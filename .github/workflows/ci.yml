@@ -49,10 +49,18 @@ jobs:
         chmod +x scripts/test_all.sh
         ./scripts/test_all.sh
 
-  debian-package:
-    name: Build Debian Package
+  # Cross-compilation builds
+  build:
+    name: Build (${{ matrix.target }})
     runs-on: ubuntu-latest
     needs: rust-check
+    
+    strategy:
+      matrix:
+        target: 
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+          - x86_64-unknown-linux-musl
     
     steps:
     - name: Checkout code
@@ -60,6 +68,66 @@ jobs:
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
+
+    - name: Install cross-compilation tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu musl-tools
+        cargo install cross --git https://github.com/cross-rs/cross
+      
+    - name: Cache cargo registry and build artifacts
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target/
+        key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-${{ matrix.target }}-cargo-
+          ${{ runner.os }}-cargo-
+        
+    - name: Build for ${{ matrix.target }}
+      run: |
+        if [[ "${{ matrix.target }}" == "x86_64-unknown-linux-gnu" ]]; then
+          cargo build --release --target ${{ matrix.target }}
+        else
+          cross build --release --target ${{ matrix.target }}
+        fi
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ddns-updater-${{ matrix.target }}
+        path: target/${{ matrix.target }}/release/ddns_updater*
+        retention-days: 30
+
+  debian-package:
+    name: Build Debian Package (${{ matrix.arch }})
+    runs-on: ubuntu-latest
+    needs: rust-check
+    
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            target: x86_64-unknown-linux-gnu
+            cross: false
+          - arch: arm64
+            target: aarch64-unknown-linux-gnu
+            cross: true
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        targets: ${{ matrix.target }}
 
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -68,7 +136,7 @@ jobs:
           ~/.cargo/registry
           ~/.cargo/git
           target/
-        key: ${{ runner.os }}-debian-cargo-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-${{ matrix.arch }}-debian-cargo-${{ hashFiles('**/Cargo.lock') }}
         
     - name: Install Debian build dependencies
       run: |
@@ -78,10 +146,22 @@ jobs:
           debhelper \
           fakeroot \
           devscripts
-          
+        
+        # Install cross-compilation tools for ARM64
+        if [[ "${{ matrix.cross }}" == "true" ]]; then
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          cargo install cross --git https://github.com/cross-rs/cross
+        fi
+        
     - name: Build Debian package
       run: |
         chmod +x build-deb.sh
+        
+        # Set architecture for Debian package
+        export DEB_HOST_ARCH=${{ matrix.arch }}
+        export CARGO_TARGET=${{ matrix.target }}
+        export USE_CROSS=${{ matrix.cross }}
+        
         ./build-deb.sh
         
     - name: Prepare package for upload
@@ -97,6 +177,83 @@ jobs:
     - name: Upload Debian package
       uses: actions/upload-artifact@v4
       with:
-        name: debian-package
+        name: debian-package-${{ matrix.arch }}
         path: "*.deb"
         retention-days: 90
+
+  # Create GitHub Release (only on published release events)
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [rust-check, build, debian-package]
+    if: github.event_name == 'release' && github.event.action == 'published'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+        
+    - name: Prepare release assets
+      run: |
+        mkdir -p release-assets
+        
+        # List all downloaded artifacts
+        echo "=== Available artifacts ==="
+        ls -la ./
+        
+        # Copy all .deb files from debian package artifacts
+        find . -name "*.deb" -type f -exec cp {} release-assets/ \;
+        
+        # Copy binaries and rename them appropriately
+        for target_dir in ddns-updater-*/; do
+          if [ -d "$target_dir" ]; then
+            target_name=$(basename "$target_dir" | sed 's/ddns-updater-//')
+            echo "Processing target: $target_name"
+            
+            # Find and copy the binary
+            find "$target_dir" -name "ddns_updater" -type f -executable -exec cp {} "release-assets/ddns-updater-$target_name" \;
+          fi
+        done
+        
+        # List final assets
+        echo "=== Release assets ==="
+        ls -la release-assets/
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: release-assets/*
+        body: |
+          ## DDNS Updater Release ${{ github.ref_name }}
+          
+          ### What's Changed
+          
+          This release includes:
+          - Debian package for easy installation
+          - Systemd service integration
+          - Comprehensive logging and monitoring
+          
+          ### Installation
+          
+          **Using Debian Package:**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/ddns-updater_*.deb
+          sudo dpkg -i ddns-updater_*.deb
+          ```
+          
+          ### Usage
+          
+          ```bash
+          # Basic usage
+          ddns_updater --host your-domain.com --config /path/to/nginx.conf
+          
+          # With systemd (after package installation)
+          sudo systemctl enable ddns-updater.timer
+          sudo systemctl start ddns-updater.timer
+          ```
+        draft: false
+        prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

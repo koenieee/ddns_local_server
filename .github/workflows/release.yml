@@ -99,13 +99,14 @@ jobs:
         git push origin "${{ github.event.inputs.version }}"
         git push origin main
         
-    - name: Create GitHub Release
+    - name: Create GitHub Release (Initial)
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ github.event.inputs.version }}
         name: Release ${{ github.event.inputs.version }}
         prerelease: ${{ github.event.inputs.prerelease }}
         generate_release_notes: true
+        draft: true  # Create as draft first
         body: |
           ## DDNS Updater ${{ github.event.inputs.version }}
           
@@ -115,31 +116,154 @@ jobs:
           - See the full changelog below for detailed changes
           
           ### Downloads
-          The following assets will be available once the CI build completes:
-          - Linux AMD64 binary
-          - Linux ARM64 binary  
-          - Linux MUSL binary
-          - Debian package (.deb)
+          Assets are being built and will be attached automatically...  
+          - Debian packages for AMD64 and ARM64 architectures
           
           ### Installation
           
           #### Using Debian Package (Recommended)
+          
+          **For x86_64/AMD64 systems:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater_*.deb
-          sudo apt install ./ddns-updater_*.deb
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater_*_amd64.deb
+          sudo apt install ./ddns-updater_*_amd64.deb
           ```
           
-          #### Using Binary
+          **For ARM64/aarch64 systems:**
           ```bash
-          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater-linux-amd64
-          chmod +x ddns-updater-linux-amd64
-          sudo mv ddns-updater-linux-amd64 /usr/local/bin/ddns-updater
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater_*_arm64.deb
+          sudo apt install ./ddns-updater_*_arm64.deb
           ```
           
           ### Configuration
           After installation, run the setup script:
           ```bash
           sudo /usr/share/ddns-updater/install-systemd.sh
+          ```
+          
+          See the [documentation](https://github.com/${{ github.repository }}) for detailed configuration instructions.
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  build-and-attach-assets:
+    name: Build and Attach Release Assets
+    runs-on: ubuntu-latest
+    needs: prepare-release
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            target: x86_64-unknown-linux-gnu
+          - arch: arm64
+            target: aarch64-unknown-linux-gnu
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.inputs.version }}  # Check out the tagged version
+
+    - name: Setup Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target/
+        key: ${{ runner.os }}-release-${{ matrix.arch }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+        
+    - name: Install cross-compilation dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          debhelper \
+          fakeroot \
+          devscripts \
+          gcc-aarch64-linux-gnu
+        
+        # Install cargo cross for cross-compilation
+        cargo install cross --git https://github.com/cross-rs/cross
+          
+    - name: Build Debian package
+      run: |
+        chmod +x build-deb.sh
+        ./build-deb.sh
+      env:
+        CARGO_TARGET: ${{ matrix.target }}
+        USE_CROSS: ${{ matrix.arch == 'arm64' && 'true' || 'false' }}
+        DEB_HOST_ARCH: ${{ matrix.arch }}
+        
+    - name: Prepare release assets
+      run: |
+        mkdir -p release-assets
+        
+        # Find and copy .deb files
+        if ls ../ddns-updater_*.deb 1> /dev/null 2>&1; then
+          echo "=== Found Debian packages for ${{ matrix.arch }} ==="
+          cp ../ddns-updater_*.deb release-assets/
+          ls -la release-assets/
+          
+          # Rename to include architecture for clarity
+          cd release-assets
+          for file in *.deb; do
+            if [[ ! "$file" =~ _${{ matrix.arch }}\.deb$ ]]; then
+              mv "$file" "${file%.deb}_${{ matrix.arch }}.deb"
+            fi
+          done
+          ls -la
+        else
+          echo "No .deb files found for ${{ matrix.arch }}!"
+          exit 1
+        fi
+        
+    - name: Upload assets to release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.event.inputs.version }}
+        files: release-assets/*
+        draft: false  # Publish the release
+        body: |
+          ## DDNS Updater ${{ github.event.inputs.version }}
+          
+          ### What's Changed
+          - Updated to version ${{ github.event.inputs.version }}
+          - See full changelog for detailed changes
+          
+          ### Installation
+          
+          #### Using Debian Package
+          
+          **For x86_64/AMD64 systems:**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater_*_amd64.deb
+          sudo dpkg -i ddns-updater_*_amd64.deb
+          ```
+          
+          **For ARM64/aarch64 systems:**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/${{ github.event.inputs.version }}/ddns-updater_*_arm64.deb
+          sudo dpkg -i ddns-updater_*_arm64.deb
+          ```
+          
+          ### Configuration
+          After installation, run the setup script:
+          ```bash
+          sudo /usr/share/ddns-updater/install-systemd.sh
+          ```
+          
+          ### Usage
+          ```bash
+          # Basic usage
+          ddns_updater --host your-domain.com --config /path/to/nginx.conf
+          
+          # With systemd (after package installation)
+          sudo systemctl enable ddns-updater.timer
+          sudo systemctl start ddns-updater.timer
           ```
           
           See the [documentation](https://github.com/${{ github.repository }}) for detailed configuration instructions.

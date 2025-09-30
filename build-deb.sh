@@ -76,14 +76,30 @@ rm -rf ../ddns-updater_* || true
 
 # Build the Rust binary first to catch any compilation errors
 print_status "Building Rust binary..."
-cargo build --release
 
-if [[ ! -f "target/release/ddns_updater" ]]; then
-    print_error "Failed to build the ddns_updater binary"
+# Support cross-compilation if environment variables are set
+CARGO_TARGET=${CARGO_TARGET:-"x86_64-unknown-linux-gnu"}
+USE_CROSS=${USE_CROSS:-"false"}
+DEB_HOST_ARCH=${DEB_HOST_ARCH:-"amd64"}
+
+print_status "Building for target: $CARGO_TARGET (arch: $DEB_HOST_ARCH)"
+
+if [[ "$USE_CROSS" == "true" ]]; then
+    print_status "Using cross-compilation..."
+    cross build --release --target "$CARGO_TARGET"
+    BINARY_PATH="target/$CARGO_TARGET/release/ddns_updater"
+else
+    print_status "Using native compilation..."
+    cargo build --release --target "$CARGO_TARGET"
+    BINARY_PATH="target/$CARGO_TARGET/release/ddns_updater"
+fi
+
+if [[ ! -f "$BINARY_PATH" ]]; then
+    print_error "Failed to build the ddns_updater binary at $BINARY_PATH"
     exit 1
 fi
 
-print_success "Rust binary built successfully"
+print_success "Rust binary built successfully at $BINARY_PATH"
 
 # Validate package files
 print_status "Validating Debian package files..."
