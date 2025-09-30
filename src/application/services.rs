@@ -1,34 +1,40 @@
-use std::sync::Arc;
 use crate::domain::entities::WebServerType;
-use crate::domain::ports::{IpRepository, WebServerHandler, NetworkService, NotificationService, ConfigDiscoveryService};
-use crate::infrastructure::{
-    FileIpRepository, HttpNetworkService, ConsoleNotificationService, 
-    FileSystemConfigDiscovery,
+use crate::domain::ports::{
+    ConfigDiscoveryService, IpRepository, NetworkService, NotificationService, WebServerHandler,
 };
-use crate::infrastructure::webservers::{NginxHandler, ApacheHandler};
+use crate::infrastructure::webservers::{ApacheHandler, NginxHandler};
+use crate::infrastructure::{
+    ConsoleNotificationService, FileIpRepository, FileSystemConfigDiscovery, HttpNetworkService,
+};
+use std::sync::Arc;
 
 /// Application service factory for creating configured services
 pub struct ServiceFactory;
 
 impl ServiceFactory {
     /// Create an IP repository with the given storage directory
-    pub fn create_ip_repository(storage_dir: std::path::PathBuf) -> Result<Arc<dyn IpRepository>, Box<dyn std::error::Error + Send + Sync>> {
+    pub fn create_ip_repository(
+        storage_dir: std::path::PathBuf,
+    ) -> Result<Arc<dyn IpRepository>, Box<dyn std::error::Error + Send + Sync>> {
         let repo = FileIpRepository::new(storage_dir)?;
         Ok(Arc::new(repo))
     }
 
     /// Create a web server handler for the given server type
-    pub fn create_web_server_handler(server_type: WebServerType) -> Arc<dyn WebServerHandler> {
+    pub fn create_web_server_handler(
+        server_type: WebServerType,
+        backup_dir: Option<std::path::PathBuf>,
+    ) -> Arc<dyn WebServerHandler> {
         match server_type {
-            WebServerType::Nginx => Arc::new(NginxHandler::new()),
-            WebServerType::Apache => Arc::new(ApacheHandler::new()),
+            WebServerType::Nginx => Arc::new(NginxHandler::with_backup_dir(backup_dir)),
+            WebServerType::Apache => Arc::new(ApacheHandler::new()), // TODO: Add backup_dir support
             WebServerType::Caddy => {
                 // TODO: Implement Caddy handler
-                Arc::new(NginxHandler::new()) // Fallback to Nginx for now
+                Arc::new(NginxHandler::with_backup_dir(backup_dir)) // Fallback to Nginx for now
             }
             WebServerType::Traefik => {
                 // TODO: Implement Traefik handler
-                Arc::new(NginxHandler::new()) // Fallback to Nginx for now
+                Arc::new(NginxHandler::with_backup_dir(backup_dir)) // Fallback to Nginx for now
             }
         }
     }
@@ -53,6 +59,8 @@ impl ServiceFactory {
 #[derive(Debug, Clone)]
 pub struct AppConfig {
     pub storage_dir: std::path::PathBuf,
+    pub backup_dir: Option<std::path::PathBuf>,
+    pub no_reload: bool,
     pub verbose: bool,
     pub backup_retention_days: u16,
     pub max_backups: u16,
@@ -62,6 +70,8 @@ impl Default for AppConfig {
     fn default() -> Self {
         Self {
             storage_dir: std::path::PathBuf::from("/var/lib/ddns-updater"),
+            backup_dir: None, // Use default backup behavior (same directory as config)
+            no_reload: false, // Default: reload server after config changes
             verbose: false,
             backup_retention_days: 30,
             max_backups: 10,
@@ -81,6 +91,16 @@ impl AppConfig {
 
     pub fn with_verbose(mut self, verbose: bool) -> Self {
         self.verbose = verbose;
+        self
+    }
+
+    pub fn with_backup_dir(mut self, dir: Option<std::path::PathBuf>) -> Self {
+        self.backup_dir = dir;
+        self
+    }
+
+    pub fn with_no_reload(mut self, no_reload: bool) -> Self {
+        self.no_reload = no_reload;
         self
     }
 

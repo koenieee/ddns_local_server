@@ -32,6 +32,15 @@ impl DdnsUpdateService {
         hostname: &str,
         config: &WebServerConfig,
     ) -> Result<UpdateResult, Box<dyn std::error::Error + Send + Sync>> {
+        self.update_ddns_with_options(hostname, config, false).await
+    }
+
+    pub async fn update_ddns_with_options(
+        &self,
+        hostname: &str,
+        config: &WebServerConfig,
+        no_reload: bool,
+    ) -> Result<UpdateResult, Box<dyn std::error::Error + Send + Sync>> {
         eprintln!("DEBUG: Starting update_ddns for hostname: {}", hostname);
         eprintln!("DEBUG: Config path: {}", config.path.display());
 
@@ -84,14 +93,18 @@ impl DdnsUpdateService {
                 return Err("Configuration test failed after update".into());
             }
 
-            // Reload the web server
-            eprintln!("DEBUG: About to reload server");
-            match self.web_server_handler.reload_server().await {
-                Ok(()) => eprintln!("DEBUG: Server reload completed successfully"),
-                Err(e) => {
-                    eprintln!("DEBUG: Server reload failed: {}", e);
-                    return Err(e);
+            // Reload the web server (unless --no-reload is specified)
+            if !no_reload {
+                eprintln!("DEBUG: About to reload server");
+                match self.web_server_handler.reload_server().await {
+                    Ok(()) => eprintln!("DEBUG: Server reload completed successfully"),
+                    Err(e) => {
+                        eprintln!("DEBUG: Server reload failed: {}", e);
+                        return Err(e);
+                    }
                 }
+            } else {
+                eprintln!("DEBUG: Skipping server reload (--no-reload specified)");
             }
 
             // Store the new IP

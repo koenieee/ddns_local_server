@@ -9,11 +9,17 @@ use crate::domain::entities::{WebServerConfig, WebServerType};
 use crate::domain::ports::WebServerHandler;
 
 /// Nginx web server handler
-pub struct NginxHandler;
+pub struct NginxHandler {
+    backup_dir: Option<PathBuf>,
+}
 
 impl NginxHandler {
     pub fn new() -> Self {
-        Self
+        Self { backup_dir: None }
+    }
+
+    pub fn with_backup_dir(backup_dir: Option<PathBuf>) -> Self {
+        Self { backup_dir }
     }
 
     async fn backup_file(
@@ -21,7 +27,24 @@ impl NginxHandler {
         config_path: &std::path::Path,
     ) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
-        let backup_path = config_path.with_extension(format!("bak.{}", timestamp));
+
+        let backup_path = if let Some(backup_dir) = &self.backup_dir {
+            // Create backup directory if it doesn't exist
+            if !backup_dir.exists() {
+                fs::create_dir_all(backup_dir).await?;
+            }
+
+            // Create backup filename with original filename + timestamp
+            let filename = config_path
+                .file_name()
+                .unwrap_or_else(|| std::ffi::OsStr::new("config"))
+                .to_string_lossy();
+            backup_dir.join(format!("{}.bak.{}", filename, timestamp))
+        } else {
+            // Default behavior: same directory as original with .bak extension
+            config_path.with_extension(format!("bak.{}", timestamp))
+        };
+
         fs::copy(config_path, &backup_path).await?;
         Ok(backup_path)
     }

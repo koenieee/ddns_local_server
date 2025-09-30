@@ -44,9 +44,21 @@ impl CliInterface {
             PathBuf::from("/var/lib/ddns-updater")
         };
 
+        // Determine backup directory
+        let backup_dir = if let Some(dir) = args.backup_dir.as_ref() {
+            Some(dir.clone())
+        } else if storage_dir.starts_with("./") {
+            // For tests or when using local storage, use a local backup directory
+            Some(std::path::PathBuf::from("./test_backups"))
+        } else {
+            None // Use default behavior (same directory as config)
+        };
+
         let app_config = AppConfig::new()
             .with_verbose(args.verbose)
-            .with_storage_dir(storage_dir);
+            .with_storage_dir(storage_dir)
+            .with_backup_dir(backup_dir)
+            .with_no_reload(args.no_reload);
 
         // Create application instance
         let app = DdnsApplication::new(app_config)?;

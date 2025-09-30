@@ -54,6 +54,18 @@ impl UpdateDdnsUseCase {
         self.service.update_ddns(hostname, config).await
     }
 
+    /// Execute the DDNS update with options (like no-reload)
+    pub async fn execute_with_options(
+        &self,
+        hostname: &str,
+        config: &WebServerConfig,
+        no_reload: bool,
+    ) -> Result<UpdateResult, Box<dyn std::error::Error + Send + Sync>> {
+        self.service
+            .update_ddns_with_options(hostname, config, no_reload)
+            .await
+    }
+
     /// List all stored IP entries
     pub async fn list_entries(
         &self,
@@ -152,7 +164,8 @@ impl DdnsApplication {
         eprintln!("DEBUG: WebServerConfig created");
 
         // Create appropriate web server handler
-        let web_server_handler = ServiceFactory::create_web_server_handler(server_type);
+        let web_server_handler =
+            ServiceFactory::create_web_server_handler(server_type, self.config.backup_dir.clone());
         eprintln!("DEBUG: Web server handler created");
 
         // Create and execute the use case
@@ -164,7 +177,9 @@ impl DdnsApplication {
         );
         eprintln!("DEBUG: Use case created, about to execute");
 
-        let result = use_case.execute(hostname, &config).await;
+        let result = use_case
+            .execute_with_options(hostname, &config, self.config.no_reload)
+            .await;
         eprintln!(
             "DEBUG: Use case execution result: {:?}",
             result
