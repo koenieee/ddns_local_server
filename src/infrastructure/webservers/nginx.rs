@@ -52,40 +52,73 @@ impl NginxHandler {
         &self,
         config_path: &std::path::Path,
         hostname: &str,
-        _old_ip: Option<IpAddr>,
+        old_ip: Option<IpAddr>,
         new_ip: IpAddr,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let content = fs::read_to_string(config_path).await?;
         let mut lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
         let mut updated = false;
 
-        // Comment pattern for hostname identification
-        let hostname_comment = format!("# DDNS: {}", hostname);
+        // If we have an old IP, look for it and replace with new IP
+        if let Some(old_ip_addr) = old_ip {
+            // First pass: look for existing IP entries to replace
+            for (i, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
 
-        // Look for existing DDNS-related entries for this hostname (both formats)
-        // Only replace existing entries - do NOT add new ones if none exist
+                // Check if this line contains the old IP in an allow directive
+                if trimmed.starts_with("allow ") && trimmed.contains(&old_ip_addr.to_string()) {
+                    // Get the current indentation
+                    let indent = &line[..line.len() - line.trim_start().len()];
 
-        // First pass: look for existing entries to replace
-        for (i, line) in lines.iter().enumerate() {
-            let trimmed = line.trim();
+                    // Preserve any existing comment
+                    let comment_part = if trimmed.contains('#') {
+                        let parts: Vec<&str> = trimmed.splitn(2, '#').collect();
+                        if parts.len() > 1 {
+                            format!(" # {}", parts[1].trim())
+                        } else {
+                            String::new()
+                        }
+                    } else {
+                        String::new()
+                    };
 
-            // Check if this is a DDNS-related allow entry for our hostname
-            if trimmed.starts_with("allow ")
-                && (trimmed.contains(&format!("# DDNS: {}", hostname))
-                    || trimmed.contains(&format!("# DDNS for {}", hostname)))
-            {
-                // Get the current indentation
-                let indent = &line[..line.len() - line.trim_start().len()];
+                    // Replace this line with the new IP, preserving formatting and comments
+                    lines[i] = format!("{}allow {};{}", indent, new_ip, comment_part);
+                    updated = true;
+                    eprintln!(
+                        "DEBUG: Replaced old IP {} with new IP {} for hostname: {}",
+                        old_ip_addr, new_ip, hostname
+                    );
+                    break;
+                }
+            }
+        } else {
+            // If no old IP is stored, look for DDNS-managed entries (legacy support)
+            for (i, line) in lines.iter().enumerate() {
+                let trimmed = line.trim();
 
-                // Replace this line with our new entry
-                lines[i] = format!("{}allow {}; {}", indent, new_ip, hostname_comment);
-                updated = true;
-                break;
+                // Check if this is a DDNS-related allow entry for our hostname
+                if trimmed.starts_with("allow ")
+                    && (trimmed.contains(&format!("# DDNS: {}", hostname))
+                        || trimmed.contains(&format!("# DDNS for {}", hostname)))
+                {
+                    // Get the current indentation
+                    let indent = &line[..line.len() - line.trim_start().len()];
+
+                    // Replace this line with our new entry
+                    lines[i] = format!("{}allow {}; # DDNS: {}", indent, new_ip, hostname);
+                    updated = true;
+                    eprintln!(
+                        "DEBUG: Replaced DDNS-commented entry with new IP {} for hostname: {}",
+                        new_ip, hostname
+                    );
+                    break;
+                }
             }
         }
 
         // Important: Do NOT add new entries if none existed before
-        // This ensures we only update existing DDNS-managed entries
+        // This ensures we only update existing entries
 
         if updated {
             let new_content = lines.join("\n");
