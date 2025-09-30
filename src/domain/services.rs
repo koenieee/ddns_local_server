@@ -71,11 +71,11 @@ impl DdnsUpdateService {
         eprintln!("DEBUG: Stored IP: {:?}", stored_ip);
 
         // Check if IP has changed
-        if let Some(old_ip) = stored_ip {
-            if old_ip == current_ip {
-                eprintln!("DEBUG: IP unchanged, returning NoChange");
-                return Ok(UpdateResult::NoChange { ip: current_ip });
-            }
+        if let Some(old_ip) = stored_ip
+            && old_ip == current_ip
+        {
+            eprintln!("DEBUG: IP unchanged, returning NoChange");
+            return Ok(UpdateResult::NoChange { ip: current_ip });
         }
 
         // Create backup before modification

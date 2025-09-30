@@ -66,8 +66,7 @@ impl NginxHandler {
         // Only replace existing entries - do NOT add new ones if none exist
 
         // First pass: look for existing entries to replace
-        for i in 0..lines.len() {
-            let line = &lines[i];
+        for (i, line) in lines.iter().enumerate() {
             let trimmed = line.trim();
 
             // Check if this is a DDNS-related allow entry for our hostname

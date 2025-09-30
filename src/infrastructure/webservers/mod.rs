@@ -1,5 +1,5 @@
-pub mod nginx;
 pub mod apache;
+pub mod nginx;
 
-pub use nginx::NginxHandler;
 pub use apache::ApacheHandler;
+pub use nginx::NginxHandler;

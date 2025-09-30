@@ -92,12 +92,12 @@ impl IpRepository for FileIpRepository {
         let mut dir = async_fs::read_dir(&self.storage_dir).await?;
 
         while let Some(entry) = dir.next_entry().await? {
-            if let Some(ext) = entry.path().extension() {
-                if ext == "json" {
-                    let content = async_fs::read_to_string(entry.path()).await?;
-                    if let Ok(ip_entry) = serde_json::from_str::<IpEntry>(&content) {
-                        entries.push(ip_entry);
-                    }
+            if let Some(ext) = entry.path().extension()
+                && ext == "json"
+            {
+                let content = async_fs::read_to_string(entry.path()).await?;
+                if let Ok(ip_entry) = serde_json::from_str::<IpEntry>(&content) {
+                    entries.push(ip_entry);
                 }
             }
         }

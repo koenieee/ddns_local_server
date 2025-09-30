@@ -109,8 +109,7 @@ impl FileSystemConfigDiscovery {
         let mut paths = Vec::new();
 
         // Simple glob expansion - in a real implementation you'd use a glob library
-        if pattern.ends_with("/*") {
-            let dir_path = &pattern[..pattern.len() - 2];
+        if let Some(dir_path) = pattern.strip_suffix("/*") {
             let dir = Path::new(dir_path);
 
             if dir.exists() && dir.is_dir() {
@@ -121,15 +120,14 @@ impl FileSystemConfigDiscovery {
                     }
                 }
             }
-        } else if pattern.ends_with("/*.conf") {
-            let dir_path = &pattern[..pattern.len() - 7];
+        } else if let Some(dir_path) = pattern.strip_suffix("/*.conf") {
             let dir = Path::new(dir_path);
 
             if dir.exists() && dir.is_dir() {
                 let mut entries = fs::read_dir(dir).await?;
                 while let Some(entry) = entries.next_entry().await? {
                     let path = entry.path();
-                    if path.extension().map_or(false, |ext| ext == "conf") {
+                    if path.extension().is_some_and(|ext| ext == "conf") {
                         paths.push(path);
                     }
                 }

@@ -254,7 +254,9 @@ pub fn update_nginx_allow_ip(
 }
 
 /// Create a backup of nginx config file
-pub fn backup_nginx_config(config_path: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+pub fn backup_nginx_config(
+    config_path: &str,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     backup_nginx_config_to_dir(config_path, None)
 }
 

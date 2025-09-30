@@ -1,7 +1,7 @@
-use std::net::IpAddr;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt;
-use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
 
 /// Domain entity representing an IP address entry in a configuration
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

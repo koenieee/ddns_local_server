@@ -1,5 +1,5 @@
-use std::net::IpAddr;
 use async_trait::async_trait;
+use std::net::IpAddr;
 
 use crate::domain::ports::NotificationService;
 
@@ -26,13 +26,19 @@ impl NotificationService for ConsoleNotificationService {
             Some(old) => {
                 println!("✅ IP updated for {}: {} → {}", hostname, old, new_ip);
                 if self.verbose {
-                    println!("   Changed at: {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
+                    println!(
+                        "   Changed at: {}",
+                        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+                    );
                 }
             }
             None => {
                 println!("✅ New IP registered for {}: {}", hostname, new_ip);
                 if self.verbose {
-                    println!("   Registered at: {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"));
+                    println!(
+                        "   Registered at: {}",
+                        chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC")
+                    );
                 }
             }
         }
@@ -73,10 +79,14 @@ impl NotificationService for LogNotificationService {
             Some(old) => format!("DDNS IP updated for {}: {} -> {}", hostname, old, new_ip),
             None => format!("DDNS new IP registered for {}: {}", hostname, new_ip),
         };
-        
+
         // In a real implementation, this would use a proper logging library
         // For now, we'll write to stderr with a timestamp
-        eprintln!("[{}] INFO: {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"), message);
+        eprintln!(
+            "[{}] INFO: {}",
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+            message
+        );
         Ok(())
     }
 
@@ -89,8 +99,12 @@ impl NotificationService for LogNotificationService {
             Some(ctx) => format!("DDNS error in {}: {}", ctx, error),
             None => format!("DDNS error: {}", error),
         };
-        
-        eprintln!("[{}] ERROR: {}", chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"), message);
+
+        eprintln!(
+            "[{}] ERROR: {}",
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S"),
+            message
+        );
         Ok(())
     }
 }

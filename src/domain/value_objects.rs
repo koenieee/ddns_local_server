@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use std::fmt;
+use std::path::PathBuf;
 
 /// Value object for configuration paths with validation
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -12,7 +12,7 @@ impl ConfigPath {
         if !path.exists() {
             return Err(ConfigPathError::NotFound(path));
         }
-        
+
         if !path.is_file() {
             return Err(ConfigPathError::NotAFile(path));
         }
@@ -52,7 +52,10 @@ impl Hostname {
         }
 
         // Basic hostname validation (RFC compliant validation would be more complex)
-        if !value.chars().all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_') {
+        if !value
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '.' || c == '-' || c == '_')
+        {
             return Err(HostnameError::InvalidCharacters(value));
         }
 
@@ -103,7 +106,7 @@ impl BackupRetention {
         if max_backups == 0 {
             return Err(BackupRetentionError::InvalidBackupCount);
         }
-        
+
         if max_age_days == 0 {
             return Err(BackupRetentionError::InvalidAgeDays);
         }
@@ -126,9 +129,15 @@ pub enum ConfigPathError {
 impl fmt::Display for ConfigPathError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ConfigPathError::NotFound(path) => write!(f, "Configuration file not found: {}", path.display()),
-            ConfigPathError::NotAFile(path) => write!(f, "Path is not a regular file: {}", path.display()),
-            ConfigPathError::PermissionDenied(path) => write!(f, "Permission denied accessing: {}", path.display()),
+            ConfigPathError::NotFound(path) => {
+                write!(f, "Configuration file not found: {}", path.display())
+            }
+            ConfigPathError::NotAFile(path) => {
+                write!(f, "Path is not a regular file: {}", path.display())
+            }
+            ConfigPathError::PermissionDenied(path) => {
+                write!(f, "Permission denied accessing: {}", path.display())
+            }
         }
     }
 }
@@ -147,8 +156,12 @@ impl fmt::Display for HostnameError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             HostnameError::Empty => write!(f, "Hostname cannot be empty"),
-            HostnameError::TooLong(len) => write!(f, "Hostname too long: {} characters (max 253)", len),
-            HostnameError::InvalidCharacters(hostname) => write!(f, "Invalid characters in hostname: {}", hostname),
+            HostnameError::TooLong(len) => {
+                write!(f, "Hostname too long: {} characters (max 253)", len)
+            }
+            HostnameError::InvalidCharacters(hostname) => {
+                write!(f, "Invalid characters in hostname: {}", hostname)
+            }
         }
     }
 }
@@ -165,7 +178,9 @@ pub enum BackupRetentionError {
 impl fmt::Display for BackupRetentionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            BackupRetentionError::InvalidBackupCount => write!(f, "Backup count must be greater than 0"),
+            BackupRetentionError::InvalidBackupCount => {
+                write!(f, "Backup count must be greater than 0")
+            }
             BackupRetentionError::InvalidAgeDays => write!(f, "Age in days must be greater than 0"),
         }
     }

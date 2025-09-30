@@ -4,7 +4,10 @@ use std::net::IpAddr;
 use std::path::Path;
 
 /// Store an IP address to a file
-pub fn store_ip(ip: IpAddr, file_path: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub fn store_ip(
+    ip: IpAddr,
+    file_path: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut file = fs::File::create(file_path)?;
     writeln!(file, "{}", ip)?;
     Ok(())

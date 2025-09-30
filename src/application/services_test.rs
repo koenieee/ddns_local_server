@@ -108,28 +108,24 @@ mod tests {
         // Verify repository was created by checking it exists
         let _repo = result.unwrap();
         // Repository creation succeeded if we reach this point
-        assert!(true);
     }
 
     #[test]
     fn test_create_network_service() {
         let _service = ServiceFactory::create_network_service();
         // Service creation succeeded if we reach this point
-        assert!(true);
     }
 
     #[test]
     fn test_create_notification_service() {
         let _service = ServiceFactory::create_notification_service(true);
         // Service creation succeeded if we reach this point
-        assert!(true);
     }
 
     #[test]
     fn test_create_config_discovery_service() {
         let _service = ServiceFactory::create_config_discovery_service();
         // Service creation succeeded if we reach this point
-        assert!(true);
     }
 
     #[test]

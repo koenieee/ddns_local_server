@@ -1,9 +1,9 @@
+use async_trait::async_trait;
+use regex::Regex;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::process::Command;
-use async_trait::async_trait;
 use tokio::fs;
-use regex::Regex;
 
 use crate::domain::entities::{WebServerConfig, WebServerType};
 use crate::domain::ports::WebServerHandler;
@@ -16,7 +16,10 @@ impl ApacheHandler {
         Self
     }
 
-    async fn backup_file(&self, config_path: &std::path::Path) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+    async fn backup_file(
+        &self,
+        config_path: &std::path::Path,
+    ) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
         let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
         let backup_path = config_path.with_extension(format!("bak.{}", timestamp));
         fs::copy(config_path, &backup_path).await?;
@@ -36,7 +39,7 @@ impl ApacheHandler {
 
         // Comment pattern for hostname identification
         let hostname_comment = format!("# DDNS: {}", hostname);
-        
+
         // Remove old entries for this hostname
         if let Some(old_ip) = old_ip {
             let old_require_pattern = format!("Require ip {}", old_ip);
@@ -50,12 +53,12 @@ impl ApacheHandler {
         let directory_regex = Regex::new(r"^\s*<Directory\s+.*>\s*$")?;
         let location_regex = Regex::new(r"^\s*<Location\s+.*>\s*$")?;
         let virtualhost_regex = Regex::new(r"^\s*<VirtualHost\s+.*>\s*$")?;
-        
+
         for i in 0..lines.len() {
-            if directory_regex.is_match(&lines[i]) || 
-               location_regex.is_match(&lines[i]) || 
-               virtualhost_regex.is_match(&lines[i]) {
-                
+            if directory_regex.is_match(&lines[i])
+                || location_regex.is_match(&lines[i])
+                || virtualhost_regex.is_match(&lines[i])
+            {
                 // Find the corresponding closing tag
                 let tag_name = if lines[i].contains("<Directory") {
                     "Directory"
@@ -64,14 +67,17 @@ impl ApacheHandler {
                 } else {
                     "VirtualHost"
                 };
-                
+
                 let closing_tag = format!("</{}>", tag_name);
-                
+
                 for j in (i + 1)..lines.len() {
                     if lines[j].contains(&closing_tag) {
                         // Insert Require rule before closing tag
                         let indent = "    "; // Standard Apache indentation
-                        lines.insert(j, format!("{}Require ip {} {}", indent, new_ip, hostname_comment));
+                        lines.insert(
+                            j,
+                            format!("{}Require ip {} {}", indent, new_ip, hostname_comment),
+                        );
                         updated = true;
                         break;
                     }
@@ -98,23 +104,28 @@ impl WebServerHandler for ApacheHandler {
         old_ip: Option<IpAddr>,
         new_ip: IpAddr,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        self.update_apache_config(&config.path, hostname, old_ip, new_ip).await
+        self.update_apache_config(&config.path, hostname, old_ip, new_ip)
+            .await
     }
 
-    async fn validate_config(&self, config: &WebServerConfig) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    async fn validate_config(
+        &self,
+        config: &WebServerConfig,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         if !config.path.exists() {
             return Ok(false);
         }
 
         // Try both common Apache command names
         let commands = ["apache2ctl", "apachectl", "httpd"];
-        
+
         for cmd in &commands {
             if let Ok(output) = Command::new(cmd)
                 .arg("-t")
                 .arg("-f")
                 .arg(&config.path)
-                .output() {
+                .output()
+            {
                 return Ok(output.status.success());
             }
         }
@@ -125,26 +136,32 @@ impl WebServerHandler for ApacheHandler {
     async fn reload_server(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Try different service names for Apache
         let services = ["apache2", "httpd"];
-        
+
         for service in &services {
             if let Ok(output) = Command::new("systemctl")
                 .arg("reload")
                 .arg(service)
-                .output() {
-                if output.status.success() {
-                    return Ok(());
-                }
+                .output()
+                && output.status.success()
+            {
+                return Ok(());
             }
         }
 
         Err("Failed to reload Apache (tried apache2, httpd services)".into())
     }
 
-    async fn create_backup(&self, config: &WebServerConfig) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
+    async fn create_backup(
+        &self,
+        config: &WebServerConfig,
+    ) -> Result<PathBuf, Box<dyn std::error::Error + Send + Sync>> {
         self.backup_file(&config.path).await
     }
 
-    async fn test_configuration(&self, config: &WebServerConfig) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    async fn test_configuration(
+        &self,
+        config: &WebServerConfig,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         self.validate_config(config).await
     }
 

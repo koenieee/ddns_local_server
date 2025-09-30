@@ -103,30 +103,31 @@ else
     echo -e "${YELLOW}⚠ Position test script not found, skipping position tests${NC}"
 fi
 
-# Check code formatting (if rustfmt is available)
+# Check code formatting and linting
 print_section "Code Quality Checks"
-if command_exists rustfmt; then
-    echo "Checking code formatting..."
-    if cargo fmt --check; then
-        echo -e "${GREEN}✓ Code is properly formatted${NC}"
+if [ -f "scripts/check_formatting.sh" ]; then
+    chmod +x scripts/check_formatting.sh
+    if scripts/check_formatting.sh; then
+        echo -e "${GREEN}✓ All code quality checks passed${NC}"
     else
-        echo -e "${YELLOW}⚠ Code formatting issues found. Run 'cargo fmt' to fix.${NC}"
+        echo -e "${RED}❌ Code quality checks failed${NC}"
+        exit 1
     fi
 else
-    echo -e "${YELLOW}⚠ rustfmt not found, skipping format check${NC}"
+    # Fallback to individual checks
+    if command_exists rustfmt; then
+        echo "Checking code formatting..."
+        if cargo fmt --check; then
+            echo -e "${GREEN}✓ Code is properly formatted${NC}"
+        else
+            echo -e "${YELLOW}⚠ Code formatting issues found. Run 'cargo fmt' to fix.${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠ rustfmt not found, skipping format check${NC}"
+    fi
 fi
 
-# Check for common issues with clippy (if available)
-if command_exists cargo-clippy; then
-    echo "Running clippy analysis..."
-    if cargo clippy --all-targets --all-features -- -D warnings; then
-        echo -e "${GREEN}✓ No clippy warnings${NC}"
-    else
-        echo -e "${YELLOW}⚠ Clippy warnings found${NC}"
-    fi
-else
-    echo -e "${YELLOW}⚠ clippy not found, skipping linter check${NC}"
-fi
+
 
 # Test configuration validation
 print_section "Configuration Validation Tests"
