@@ -32,21 +32,42 @@ impl DdnsUpdateService {
         hostname: &str,
         config: &WebServerConfig,
     ) -> Result<UpdateResult, Box<dyn std::error::Error + Send + Sync>> {
-        // Get current public IP
-        let current_ip = self.network_service.get_public_ip().await?;
+        eprintln!("DEBUG: Starting update_ddns for hostname: {}", hostname);
+        eprintln!("DEBUG: Config path: {}", config.path.display());
+
+        // Validate web server configuration first, before any other operations
+        eprintln!("DEBUG: Validating web server configuration...");
+        let is_valid = self.web_server_handler.validate_config(config).await?;
+        eprintln!("DEBUG: Configuration validation result: {}", is_valid);
+        if !is_valid {
+            return Err("Invalid web server configuration".into());
+        }
+
+        // Resolve the hostname to get its current IP address
+        eprintln!("DEBUG: Resolving hostname: {}", hostname);
+        let resolved_ips = self.network_service.resolve_hostname(hostname).await?;
+        eprintln!("DEBUG: Resolved IPs: {:?}", resolved_ips);
+
+        if resolved_ips.is_empty() {
+            return Err(format!("Could not resolve hostname: {}", hostname).into());
+        }
+
+        // Use the first resolved IP (typically the primary A record)
+        let current_ip = resolved_ips[0];
+        eprintln!("DEBUG: Using IP: {}", current_ip);
 
         // Get stored IP for this hostname
+        eprintln!("DEBUG: Loading stored IP for hostname: {}", hostname);
         let stored_ip = self.ip_repository.load_ip(hostname).await?;
+        eprintln!("DEBUG: Stored IP: {:?}", stored_ip);
 
         // Check if IP has changed
         if let Some(old_ip) = stored_ip {
             if old_ip == current_ip {
+                eprintln!("DEBUG: IP unchanged, returning NoChange");
                 return Ok(UpdateResult::NoChange { ip: current_ip });
             }
         }
-
-        // Validate web server configuration before making changes
-        self.web_server_handler.validate_config(config).await?;
 
         // Create backup before modification
         let backup_path = self.web_server_handler.create_backup(config).await?;
@@ -64,10 +85,24 @@ impl DdnsUpdateService {
             }
 
             // Reload the web server
-            self.web_server_handler.reload_server().await?;
+            eprintln!("DEBUG: About to reload server");
+            match self.web_server_handler.reload_server().await {
+                Ok(()) => eprintln!("DEBUG: Server reload completed successfully"),
+                Err(e) => {
+                    eprintln!("DEBUG: Server reload failed: {}", e);
+                    return Err(e);
+                }
+            }
 
             // Store the new IP
-            self.ip_repository.store_ip(hostname, current_ip).await?;
+            eprintln!("DEBUG: About to store IP");
+            match self.ip_repository.store_ip(hostname, current_ip).await {
+                Ok(()) => eprintln!("DEBUG: IP stored successfully"),
+                Err(e) => {
+                    eprintln!("DEBUG: Failed to store IP: {}", e);
+                    return Err(e);
+                }
+            }
 
             // Send notification
             self.notification_service

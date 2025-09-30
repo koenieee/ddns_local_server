@@ -87,6 +87,49 @@ else
     ((FAILED++))
 fi
 
+# Test 10: Hostname resolution verification
+echo -e "\n${BLUE}Test: Hostname resolution (different IPs for different hostnames)${NC}"
+
+# Clean up any existing test storage to ensure fresh start
+rm -rf ./test_storage 2>/dev/null
+
+# Test with google.com first
+echo "Testing google.com resolution..."
+GOOGLE_OUTPUT=$(cargo run --quiet -- --config test_configs/valid/basic_server.conf --verbose --no-reload --host google.com 2>&1)
+GOOGLE_IP=$(echo "$GOOGLE_OUTPUT" | grep "DEBUG: Using IP:" | sed 's/DEBUG: Using IP: //' | tr -d '\r\n')
+
+# Test with example.com second  
+echo "Testing example.com resolution..."
+EXAMPLE_OUTPUT=$(cargo run --quiet -- --config test_configs/valid/basic_server.conf --verbose --no-reload --host example.com 2>&1)
+EXAMPLE_IP=$(echo "$EXAMPLE_OUTPUT" | grep "DEBUG: Using IP:" | sed 's/DEBUG: Using IP: //' | tr -d '\r\n')
+
+# Get user's public IP for comparison
+echo "Getting user's public IP..."
+USER_PUBLIC_IP=$(curl -s --max-time 5 https://api.ipify.org || echo "unknown")
+
+echo "Resolved IPs:"
+echo "  google.com: $GOOGLE_IP"
+echo "  example.com: $EXAMPLE_IP" 
+echo "  User public IP: $USER_PUBLIC_IP"
+
+# Verify that:
+# 1. Both IPs were resolved (not empty)
+# 2. The IPs are different from each other
+# 3. Neither IP matches the user's public IP (the old bug)
+if [[ -n "$GOOGLE_IP" && -n "$EXAMPLE_IP" && "$GOOGLE_IP" != "$EXAMPLE_IP" && "$GOOGLE_IP" != "$USER_PUBLIC_IP" && "$EXAMPLE_IP" != "$USER_PUBLIC_IP" ]]; then
+    echo -e "${GREEN}✓ PASS${NC} - Hostnames resolve to different, correct IP addresses"
+    ((PASSED++))
+else
+    echo -e "${RED}✗ FAIL${NC} - Hostname resolution issue detected"
+    echo "  Failure reasons:"
+    [[ -z "$GOOGLE_IP" ]] && echo "    - Could not resolve google.com"
+    [[ -z "$EXAMPLE_IP" ]] && echo "    - Could not resolve example.com"
+    [[ "$GOOGLE_IP" == "$EXAMPLE_IP" ]] && echo "    - Both hostnames resolved to same IP (should be different)"
+    [[ "$GOOGLE_IP" == "$USER_PUBLIC_IP" ]] && echo "    - google.com resolved to user's public IP (incorrect)"
+    [[ "$EXAMPLE_IP" == "$USER_PUBLIC_IP" ]] && echo "    - example.com resolved to user's public IP (incorrect)"
+    ((FAILED++))
+fi
+
 # Clean up any test backup directories
 if [ -d "test_backups" ]; then
     rm -rf test_backups

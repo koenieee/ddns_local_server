@@ -15,8 +15,22 @@ pub struct FileIpRepository {
 
 impl FileIpRepository {
     pub fn new(storage_dir: PathBuf) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
+        eprintln!(
+            "DEBUG: FileIpRepository attempting to use storage_dir: {:?}",
+            storage_dir
+        );
         if !storage_dir.exists() {
-            fs::create_dir_all(&storage_dir)?;
+            eprintln!(
+                "DEBUG: Storage directory doesn't exist, creating: {:?}",
+                storage_dir
+            );
+            match fs::create_dir_all(&storage_dir) {
+                Ok(()) => eprintln!("DEBUG: Successfully created storage directory"),
+                Err(e) => {
+                    eprintln!("DEBUG: Failed to create storage directory: {}", e);
+                    return Err(e.into());
+                }
+            }
         }
 
         Ok(Self { storage_dir })

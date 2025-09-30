@@ -1,8 +1,27 @@
-use std::sync::Arc;
+use crate::application::services::{AppConfig, ServiceFactory};
+use crate::domain::entities::{IpEntry, WebServerConfig};
+use crate::domain::ports::{
+    ConfigDiscoveryService, IpRepository, NetworkService, NotificationService, WebServerHandler,
+};
 use crate::domain::services::{DdnsUpdateService, UpdateResult, ValidationResult};
-use crate::domain::entities::{WebServerConfig, IpEntry};
-use crate::domain::ports::{IpRepository, WebServerHandler, NetworkService, NotificationService, ConfigDiscoveryService};
-use crate::application::services::{ServiceFactory, AppConfig};
+use std::sync::Arc;
+
+/// Result of processing multiple configurations
+#[derive(Debug)]
+pub struct MultiConfigResult {
+    pub successes: Vec<UpdateResult>,
+    pub errors: Vec<(std::path::PathBuf, String)>,
+}
+
+impl MultiConfigResult {
+    pub fn has_errors(&self) -> bool {
+        !self.errors.is_empty()
+    }
+
+    pub fn total_processed(&self) -> usize {
+        self.successes.len() + self.errors.len()
+    }
+}
 
 /// Use case for updating DDNS entries
 pub struct UpdateDdnsUseCase {
@@ -36,12 +55,17 @@ impl UpdateDdnsUseCase {
     }
 
     /// List all stored IP entries
-    pub async fn list_entries(&self) -> Result<Vec<IpEntry>, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn list_entries(
+        &self,
+    ) -> Result<Vec<IpEntry>, Box<dyn std::error::Error + Send + Sync>> {
         self.service.list_entries().await
     }
 
     /// Remove an IP entry
-    pub async fn remove_entry(&self, hostname: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn remove_entry(
+        &self,
+        hostname: &str,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         self.service.remove_entry(hostname).await
     }
 }
@@ -114,12 +138,23 @@ impl DdnsApplication {
         config_path: std::path::PathBuf,
     ) -> Result<UpdateResult, Box<dyn std::error::Error + Send + Sync>> {
         // Detect server type
-        let server_type = self.config_discovery.detect_server_type(&config_path).await?;
+        eprintln!(
+            "DEBUG: About to detect server type for: {}",
+            config_path.display()
+        );
+        let server_type = self
+            .config_discovery
+            .detect_server_type(&config_path)
+            .await?;
+        eprintln!("DEBUG: Server type detected: {:?}", server_type);
+
         let config = WebServerConfig::new(config_path, server_type.clone());
-        
+        eprintln!("DEBUG: WebServerConfig created");
+
         // Create appropriate web server handler
         let web_server_handler = ServiceFactory::create_web_server_handler(server_type);
-        
+        eprintln!("DEBUG: Web server handler created");
+
         // Create and execute the use case
         let use_case = UpdateDdnsUseCase::new(
             self.ip_repository.clone(),
@@ -127,8 +162,17 @@ impl DdnsApplication {
             self.network_service.clone(),
             self.notification_service.clone(),
         );
+        eprintln!("DEBUG: Use case created, about to execute");
 
-        use_case.execute(hostname, &config).await
+        let result = use_case.execute(hostname, &config).await;
+        eprintln!(
+            "DEBUG: Use case execution result: {:?}",
+            result
+                .as_ref()
+                .map(|_| "Ok")
+                .map_err(|e| format!("Err: {}", e))
+        );
+        result
     }
 
     /// Update DDNS for multiple configuration files
@@ -136,22 +180,21 @@ impl DdnsApplication {
         &self,
         hostname: &str,
         config_paths: Vec<std::path::PathBuf>,
-    ) -> Result<Vec<UpdateResult>, Box<dyn std::error::Error + Send + Sync>> {
-        let mut results = Vec::new();
+    ) -> Result<MultiConfigResult, Box<dyn std::error::Error + Send + Sync>> {
+        let mut successes = Vec::new();
+        let mut errors = Vec::new();
 
         for config_path in config_paths {
             match self.update_ddns(hostname, config_path.clone()).await {
-                Ok(result) => results.push(result),
+                Ok(result) => successes.push(result),
                 Err(e) => {
-                    self.notification_service
-                        .notify_error(&e.to_string(), Some(&format!("config: {}", config_path.display())))
-                        .await?;
-                    // Continue with other configs
+                    let error_msg = e.to_string();
+                    errors.push((config_path, error_msg));
                 }
             }
         }
 
-        Ok(results)
+        Ok(MultiConfigResult { successes, errors })
     }
 
     /// Discover configuration files using pattern
@@ -164,17 +207,24 @@ impl DdnsApplication {
     }
 
     /// List all stored IP entries
-    pub async fn list_entries(&self) -> Result<Vec<IpEntry>, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn list_entries(
+        &self,
+    ) -> Result<Vec<IpEntry>, Box<dyn std::error::Error + Send + Sync>> {
         self.ip_repository.list_all_entries().await
     }
 
     /// Remove an IP entry
-    pub async fn remove_entry(&self, hostname: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn remove_entry(
+        &self,
+        hostname: &str,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         self.ip_repository.delete_entry(hostname).await
     }
 
     /// Get current public IP without updating anything
-    pub async fn get_current_ip(&self) -> Result<std::net::IpAddr, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_current_ip(
+        &self,
+    ) -> Result<std::net::IpAddr, Box<dyn std::error::Error + Send + Sync>> {
         self.network_service.get_public_ip().await
     }
 }
