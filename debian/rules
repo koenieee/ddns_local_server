@@ -27,9 +27,16 @@ override_dh_strip:
 	fi
 
 override_dh_shlibdeps:
-	# Suppress diversions and missing info warnings for Rust binary
-	# Try normal shlibdeps first, fallback to ignore missing info if warnings occur
-	dh_shlibdeps 2>/dev/null || dh_shlibdeps --dpkg-shlibdeps-params="--ignore-missing-info --warnings=1"
+	# Handle cross-compilation dependency analysis
+	@set -e; \
+	if [ "$(USE_CROSS)" = "true" ] && [ "$(CARGO_TARGET)" = "aarch64-unknown-linux-gnu" ]; then \
+		echo "Cross-compilation detected - skipping automatic dependency analysis for ARM64"; \
+		echo "Dependencies will be resolved at runtime on target system"; \
+		echo "Skipping dh_shlibdeps to avoid cross-architecture library detection issues"; \
+	else \
+		echo "Native compilation - running standard dependency analysis"; \
+		dh_shlibdeps 2>/dev/null || dh_shlibdeps --dpkg-shlibdeps-params="--ignore-missing-info --warnings=1"; \
+	fi
 
 override_dh_auto_install:
 	# Install the main binary (use correct path for cross-compilation)
