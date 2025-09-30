@@ -5,7 +5,8 @@ Maintainer: koenieee
 Build-Depends: debhelper-compat (= 13),
                rustc,
                cargo,
-               pkg-config
+               pkg-config,
+               libssl-dev
 Standards-Version: 4.6.0
 Homepage: https://github.com/koenieee/ddns_local_server
 Vcs-Git: https://github.com/koenieee/ddns_local_server.git
