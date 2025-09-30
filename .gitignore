@@ -75,3 +75,6 @@ docs/build/
 test-output/
 *.test.log
 coverage.out
+
+
+test_configs/valid/*.*
