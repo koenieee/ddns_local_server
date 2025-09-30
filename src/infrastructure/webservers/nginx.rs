@@ -138,14 +138,14 @@ impl WebServerHandler for NginxHandler {
         {
             Ok(output) => Ok(output.status.success()),
             Err(_e) => {
-                // If nginx command fails (not installed), just check if file exists and looks like nginx config
+                // If nginx command fails (not installed), use more strict validation
                 let content = std::fs::read_to_string(&config.path)?;
-                // Basic content validation - check for nginx-like directives
-                let content_lower = content.to_lowercase();
-                let is_valid =
-                    content_lower.contains("server") || content_lower.contains("location");
+
+                // More strict validation: check for proper nginx structure
+                let is_valid = validate_nginx_structure(&content);
+
                 eprintln!(
-                    "DEBUG: Fallback validation for {:?}: content contains server/location: {}",
+                    "DEBUG: Fallback validation for {:?}: proper nginx structure: {}",
                     config.path.file_name(),
                     is_valid
                 );
@@ -200,4 +200,52 @@ impl Default for NginxHandler {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Validate nginx configuration structure more strictly
+fn validate_nginx_structure(content: &str) -> bool {
+    // Remove comments and empty lines for validation
+    let lines: Vec<&str> = content
+        .lines()
+        .map(|line| line.trim())
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .collect();
+
+    if lines.is_empty() {
+        return false;
+    }
+
+    // Must have at least one server block or events block
+    let has_server_block = lines
+        .iter()
+        .any(|line| line.starts_with("server") && line.contains('{'));
+    let has_events_block = lines
+        .iter()
+        .any(|line| line.starts_with("events") && line.contains('{'));
+    let has_http_block = lines
+        .iter()
+        .any(|line| line.starts_with("http") && line.contains('{'));
+
+    // Must have proper brace matching
+    let open_braces = content.matches('{').count();
+    let close_braces = content.matches('}').count();
+    let balanced_braces = open_braces == close_braces && open_braces > 0;
+
+    // Must have at least some nginx-like directives with semicolons (excluding blocks)
+    let has_directives = lines.iter().any(|line| {
+        line.ends_with(';')
+            && (line.contains("listen")
+                || line.contains("server_name")
+                || line.contains("root")
+                || line.contains("index")
+                || line.contains("allow")
+                || line.contains("deny")
+                || line.contains("return")
+                || line.contains("proxy_pass"))
+    });
+
+    // Valid nginx config needs proper structure
+    balanced_braces
+        && (has_server_block || has_events_block || has_http_block)
+        && (has_directives || has_events_block || has_http_block)
 }

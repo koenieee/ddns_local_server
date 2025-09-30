@@ -16,7 +16,7 @@ fi
 
 echo ""
 echo "🔍 Running clippy analysis..."
-if cargo clippy -- -D warnings; then
+if cargo clippy --all-targets --all-features --workspace -- -D warnings; then
     echo "✅ No clippy warnings found"
 else
     echo "❌ Clippy warnings found. Fix the issues and try again."

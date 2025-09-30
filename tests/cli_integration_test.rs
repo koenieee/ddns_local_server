@@ -160,8 +160,8 @@ fn test_cli_args_error_handling_flow() {
 
 #[test]
 fn test_cli_args_pattern_and_hostname_combinations() {
-    let patterns = vec!["*.conf", "*.nginx", "*.config", "site-*.conf"];
-    let hostnames = vec![
+    let patterns = ["*.conf", "*.nginx", "*.config", "site-*.conf"];
+    let hostnames = [
         "google.com",
         "example.com",
         "test.local",
