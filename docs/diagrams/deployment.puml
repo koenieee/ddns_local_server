@@ -1,0 +1,155 @@
+@startuml deployment
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+skinparam nodeBackgroundColor #E3F2FD
+skinparam componentBackgroundColor #FFFFFF
+skinparam componentBorderColor #1976D2
+
+title DDNS Updater - Deployment Architecture
+
+node "Linux Server" as server {
+    
+    node "System Directories" as system {
+        folder "/usr/bin" as usrbin {
+            artifact "ddns_updater" as binary
+        }
+        
+        folder "/etc/ddns-updater" as etcdir {
+            file "config templates" as templates
+        }
+        
+        folder "/var/lib/ddns-updater" as varlib {
+            file "hostname1.json" as ip1
+            file "hostname2.json" as ip2
+            file "..." as more_ips
+        }
+        
+        folder "/var/log" as logs {
+            file "ddns-updater.log" as logfile
+        }
+    }
+    
+    node "Web Server Configs" as webconfigs {
+        folder "/etc/nginx" as nginx {
+            file "nginx.conf" as nginxconf
+            folder "sites-available" as sites {
+                file "site1.conf" as site1
+                file "site2.conf" as site2
+            }
+        }
+        
+        folder "/etc/apache2" as apache {
+            file "apache2.conf" as apacheconf
+            folder "sites-available" as apachesites {
+                file "site1.conf" as asite1
+                file "site2.conf" as asite2
+            }
+        }
+    }
+    
+    node "Systemd Services" as systemd {
+        folder "/lib/systemd/system" as systemddir {
+            artifact "ddns-updater.service" as service
+            artifact "ddns-updater.timer" as timer
+            artifact "ddns-updater@.service" as template_service
+            artifact "ddns-updater@.timer" as template_timer
+            artifact "ddns-updater.target" as target
+            artifact "ddns-backup-cleanup.service" as cleanup_service
+            artifact "ddns-backup-cleanup.timer" as cleanup_timer
+        }
+    }
+    
+    node "Backup Storage" as backups {
+        folder "/var/backups/ddns-updater" as backupdir {
+            file "nginx.conf.20241001-120000" as backup1
+            file "site1.conf.20241001-120005" as backup2
+            file "..." as more_backups
+        }
+    }
+    
+    node "Runtime Processes" as processes {
+        component "systemd" as systemd_proc
+        component "ddns-updater" as ddns_proc
+        component "nginx" as nginx_proc
+        component "cron jobs" as cron
+    }
+}
+
+cloud "External Services" as external {
+    node "IP Detection Services" as ip_services {
+        component "ipify.org" as ipify
+        component "httpbin.org/ip" as httpbin
+        component "icanhazip.com" as icanhazip
+    }
+    
+    node "DNS Providers" as dns {
+        component "Domain Registrar" as registrar
+        component "DNS Hosting" as dns_host
+    }
+}
+
+node "Package Management" as packaging {
+    artifact "ddns-updater.deb" as deb_package
+    node "Debian Repository" as repo {
+        artifact "Packages.gz" as packages
+        artifact "Release" as release
+    }
+}
+
+' Installation Flow
+deb_package --> binary : "dpkg -i"
+deb_package --> service : "installs"
+deb_package --> timer : "installs"
+deb_package --> template_service : "installs"
+deb_package --> template_timer : "installs"
+deb_package --> target : "installs"
+deb_package --> cleanup_service : "installs"
+deb_package --> cleanup_timer : "installs"
+deb_package --> etcdir : "creates"
+deb_package --> varlib : "creates"
+deb_package --> backupdir : "creates"
+
+' Runtime Relationships
+systemd_proc --> service : "manages"
+systemd_proc --> timer : "schedules"
+systemd_proc --> template_service : "instantiates"
+systemd_proc --> template_timer : "schedules"
+systemd_proc --> target : "groups"
+service --> binary : "executes"
+template_service --> binary : "executes"
+
+binary --> varlib : "reads/writes IP data"
+binary --> nginxconf : "updates"
+binary --> site1 : "updates"
+binary --> site2 : "updates"
+binary --> apacheconf : "updates"
+binary --> asite1 : "updates"
+binary --> asite2 : "updates"
+binary --> backupdir : "creates backups"
+binary --> logfile : "writes logs"
+binary --> nginx_proc : "reloads"
+
+' External Communication
+binary --> ip_services : "HTTPS requests"
+dns --> registrar : "domain resolution"
+
+' Service Dependencies
+service --> nginx_proc : "After=nginx.service"
+template_service --> nginx_proc : "After=nginx.service"
+
+' Backup Management
+cleanup_service --> backupdir : "removes old backups"
+cron --> cleanup_timer : "triggers cleanup"
+
+' Configuration Management
+etcdir --> templates : "provides examples"
+templates --> nginxconf : "configuration reference"
+templates --> apacheconf : "configuration reference"
+
+note top of binary : "Single Rust binary\nStatically linked\nNo runtime dependencies"
+note top of systemd : "Full systemd integration\nTimer-based scheduling\nTemplate services for multi-host"
+note top of varlib : "Persistent IP storage\nJSON format\nOne file per hostname"
+note top of backupdir : "Automatic backup creation\nTimestamp-based naming\nConfigurable retention"
+note top of ip_services : "Multiple providers\nAutomatic failover\nHTTPS only"
+
+@enduml

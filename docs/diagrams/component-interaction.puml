@@ -1,0 +1,107 @@
+@startuml component-interaction
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+skinparam componentBackgroundColor #FFFFFF
+skinparam componentBorderColor #1976D2
+skinparam packageBackgroundColor #E3F2FD
+
+title DDNS Updater - Component Interaction Diagram
+
+package "External Dependencies" {
+    [IP Provider APIs] as IPProviders
+    [DNS Resolution] as DNS
+    [nginx/apache/caddy] as WebServers
+    [Configuration Files] as Configs
+    [Storage Files] as Storage
+}
+
+package "DDNS Updater System" {
+    
+    package "Interface Layer" {
+        [CLI Interface] as CLI
+        [Args Parser] as Args
+    }
+    
+    package "Application Layer" {
+        [DDNS Application] as App
+        [Service Factory] as Factory
+        [Update Use Case] as UpdateUC
+        [Config Validation Use Case] as ValidUC
+        [App Config] as AppConfig
+    }
+    
+    package "Domain Layer" {
+        [DDNS Update Service] as Service
+        [IP Entry Entity] as IPEntity
+        [WebServer Config Entity] as WSEntity
+        [Repository Port] as RepoPort
+        [WebServer Handler Port] as WSPort
+        [Network Service Port] as NetPort
+        [Notification Port] as NotifyPort
+        [Config Discovery Port] as ConfigPort
+    }
+    
+    package "Infrastructure Layer" {
+        [File IP Repository] as FileRepo
+        [Nginx Handler] as NginxHandler
+        [Apache Handler] as ApacheHandler
+        [HTTP Network Service] as HTTPNet
+        [Console Notifications] as Console
+        [File Config Discovery] as FileConfig
+    }
+}
+
+' Interface Layer Connections
+CLI --> Args : "parses"
+CLI --> App : "delegates to"
+
+' Application Layer Connections
+App --> Factory : "creates services"
+App --> UpdateUC : "orchestrates"
+App --> ValidUC : "validates"
+App --> AppConfig : "configures"
+UpdateUC --> Service : "executes logic"
+ValidUC --> Service : "validates configs"
+
+' Service Factory Connections
+Factory --> FileRepo : "creates"
+Factory --> NginxHandler : "creates"
+Factory --> ApacheHandler : "creates"
+Factory --> HTTPNet : "creates"
+Factory --> Console : "creates"
+Factory --> FileConfig : "creates"
+
+' Domain Service Connections
+Service --> RepoPort : "stores/retrieves IPs"
+Service --> WSPort : "updates configs"
+Service --> NetPort : "gets public IP"
+Service --> NotifyPort : "sends notifications"
+Service --> IPEntity : "manages"
+Service --> WSEntity : "processes"
+
+' Infrastructure Implementation Connections
+FileRepo ..|> RepoPort : "implements"
+NginxHandler ..|> WSPort : "implements"
+ApacheHandler ..|> WSPort : "implements"
+HTTPNet ..|> NetPort : "implements"
+Console ..|> NotifyPort : "implements"
+FileConfig ..|> ConfigPort : "implements"
+
+' External Dependencies
+HTTPNet --> IPProviders : "HTTP requests"
+HTTPNet --> DNS : "resolves hostnames"
+NginxHandler --> WebServers : "validates & reloads"
+ApacheHandler --> WebServers : "validates & reloads"
+NginxHandler --> Configs : "reads & updates"
+ApacheHandler --> Configs : "reads & updates"
+FileRepo --> Storage : "persists data"
+
+' Data Flow Annotations
+note top of CLI : "Entry point\nArgument parsing\nUser interaction"
+note top of App : "Orchestration\nConfiguration\nUse case coordination"
+note top of Service : "Business logic\nDDNS update rules\nIP change detection"
+note bottom of FileRepo : "Persistent storage\nJSON serialization\nFile system operations"
+note bottom of NginxHandler : "nginx configuration\nIP replacement logic\nConfig validation"
+note bottom of HTTPNet : "Public IP discovery\nMultiple provider support\nNetwork connectivity"
+
+@enduml

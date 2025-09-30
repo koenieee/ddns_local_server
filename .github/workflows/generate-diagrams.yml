@@ -1,0 +1,114 @@
+name: Generate Architecture Diagrams
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'docs/diagrams/**/*.puml'
+      - '.github/workflows/generate-diagrams.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/diagrams/**/*.puml'
+      - '.github/workflows/generate-diagrams.yml'
+  workflow_dispatch:
+
+jobs:
+  generate-diagrams:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup Java (required for PlantUML)
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+    
+    - name: Generate PlantUML diagrams
+      uses: cloudbees/plantuml-github-action@master
+      with:
+        args: -v -tsvg -o ../../images docs/diagrams/*.puml
+    
+    - name: Generate PNG versions for better compatibility
+      uses: cloudbees/plantuml-github-action@master
+      with:
+        args: -v -tpng -o ../../images docs/diagrams/*.puml
+    
+    - name: List generated files
+      run: |
+        echo "Generated diagram files:"
+        ls -la docs/images/
+    
+    - name: Verify diagrams were generated
+      run: |
+        echo "Checking for required diagram files..."
+        test -f docs/images/system-architecture.svg || (echo "Missing system-architecture.svg" && exit 1)
+        test -f docs/images/clean-architecture.svg || (echo "Missing clean-architecture.svg" && exit 1)
+        test -f docs/images/data-flow.svg || (echo "Missing data-flow.svg" && exit 1)
+        test -f docs/images/component-interaction.svg || (echo "Missing component-interaction.svg" && exit 1)
+        test -f docs/images/state-diagram.svg || (echo "Missing state-diagram.svg" && exit 1)
+        test -f docs/images/deployment.svg || (echo "Missing deployment.svg" && exit 1)
+        echo "✅ All diagram files generated successfully!"
+        
+    - name: Commit generated diagrams
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add docs/images/
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Auto-generate architecture diagrams from PlantUML sources"
+          git push
+        fi
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Upload diagrams as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: architecture-diagrams
+        path: docs/images/
+        retention-days: 30
+        
+    - name: Comment on PR with diagram previews
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          const diagrams = [
+            'system-architecture',
+            'clean-architecture', 
+            'data-flow',
+            'component-interaction',
+            'state-diagram',
+            'deployment'
+          ];
+          
+          let comment = '## 📊 Architecture Diagrams Updated\n\n';
+          comment += 'The following architecture diagrams have been generated from your PlantUML sources:\n\n';
+          
+          for (const diagram of diagrams) {
+            const svgPath = `docs/images/${diagram}.svg`;
+            if (fs.existsSync(svgPath)) {
+              comment += `### ${diagram.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
+              comment += `![${diagram}](./docs/images/${diagram}.svg)\n\n`;
+            }
+          }
+          
+          comment += '**Note**: Diagrams are automatically generated from PlantUML source files in `docs/diagrams/`.\n';
+          comment += 'To modify diagrams, edit the `.puml` files and they will be regenerated on merge.';
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });

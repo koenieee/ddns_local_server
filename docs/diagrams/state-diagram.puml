@@ -1,0 +1,112 @@
+@startuml state-diagram
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+skinparam stateBackgroundColor #FFFFFF
+skinparam stateBorderColor #1976D2
+
+title DDNS Updater - State Diagram
+
+[*] --> Initialization : Program Start
+
+state Initialization {
+    [*] --> ParseArgs
+    ParseArgs --> ValidateArgs
+    ValidateArgs --> CreateServices : Valid Args
+    ValidateArgs --> [*] : Invalid Args / Exit(1)
+    CreateServices --> Ready
+}
+
+Ready --> Discovery : Multiple Configs
+Ready --> SingleConfig : Single Config
+
+state Discovery {
+    [*] --> ScanDirectory
+    ScanDirectory --> FilterConfigs
+    FilterConfigs --> DetectServerTypes
+    DetectServerTypes --> ConfigsReady
+}
+
+state SingleConfig {
+    [*] --> LoadConfig
+    LoadConfig --> DetectServerType
+    DetectServerType --> ConfigReady
+}
+
+ConfigsReady --> Processing
+ConfigReady --> Processing
+
+state Processing {
+    [*] --> GetCurrentIP
+    GetCurrentIP --> GetStoredIP
+    GetStoredIP --> CompareIPs
+    
+    CompareIPs --> NoChange : IPs Match
+    CompareIPs --> UpdateRequired : IPs Different
+    CompareIPs --> FirstRun : No Stored IP
+    
+    state UpdateRequired {
+        [*] --> ValidateConfig
+        ValidateConfig --> CreateBackup : Valid
+        ValidateConfig --> Error : Invalid
+        CreateBackup --> UpdateConfig
+        UpdateConfig --> ReloadServer : no_reload=false
+        UpdateConfig --> StoreNewIP : no_reload=true
+        ReloadServer --> StoreNewIP
+        StoreNewIP --> NotifySuccess
+        NotifySuccess --> [*]
+    }
+    
+    state FirstRun {
+        [*] --> ValidateConfig
+        ValidateConfig --> CreateBackup : Valid
+        ValidateConfig --> Error : Invalid
+        CreateBackup --> UpdateConfig
+        UpdateConfig --> ReloadServer : no_reload=false
+        UpdateConfig --> StoreNewIP : no_reload=true
+        ReloadServer --> StoreNewIP
+        StoreNewIP --> NotifySuccess
+        NotifySuccess --> [*]
+    }
+    
+    NoChange --> NotifyNoChange
+    NotifyNoChange --> [*]
+    Error --> NotifyError
+    NotifyError --> [*]
+}
+
+Processing --> Results
+Results --> Complete : Success
+Results --> Failed : Error
+
+state Complete {
+    Complete : Display Results
+    Complete : Exit Code 0
+}
+
+state Failed {
+    Failed : Display Error
+    Failed : Exit Code 1
+}
+
+Complete --> [*]
+Failed --> [*]
+
+' Error states that can occur from any processing state
+Processing --> NetworkError : Network Failure
+Processing --> FileSystemError : File I/O Failure
+Processing --> ConfigError : Invalid Configuration
+Processing --> ValidationError : Validation Failure
+
+NetworkError --> NotifyError
+FileSystemError --> NotifyError
+ConfigError --> NotifyError
+ValidationError --> NotifyError
+
+' Notes for key states
+note right of GetCurrentIP : "Contacts external IP\nproviders (ipify, httpbin, etc.)"
+note right of GetStoredIP : "Reads hostname.json\nfrom storage directory"
+note right of UpdateConfig : "Replaces IP in nginx/apache\nconfig using stored IP lookup"
+note right of ReloadServer : "Executes nginx -s reload\nor equivalent server command"
+note right of CreateBackup : "Creates timestamped\nbackup of config file"
+
+@enduml

@@ -1,0 +1,121 @@
+@startuml data-flow
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+skinparam sequenceActorBackgroundColor #E3F2FD
+skinparam sequenceParticipantBackgroundColor #FFFFFF
+skinparam sequenceParticipantBorderColor #1976D2
+
+title DDNS Updater - Data Flow Diagram
+
+actor User
+participant "CLI Interface" as CLI
+participant "DDNS Application" as App
+participant "Update Use Case" as UC
+participant "DDNS Service" as Service
+participant "Network Service" as Network
+participant "IP Repository" as Repo
+participant "WebServer Handler" as Handler
+participant "Notification Service" as Notify
+participant "File System" as FS
+participant "IP Provider" as IPProvider
+participant "Web Server" as WebServer
+
+== DDNS Update Flow ==
+
+User -> CLI: ./ddns_updater --host example.com --config nginx.conf
+activate CLI
+
+CLI -> App: process_single_config(hostname, config)
+activate App
+
+App -> UC: execute(hostname, config)
+activate UC
+
+UC -> Service: update_ddns(hostname, config)
+activate Service
+
+Service -> Network: get_public_ip()
+activate Network
+Network -> IPProvider: HTTP request
+IPProvider --> Network: current IP
+Network --> Service: new_ip
+deactivate Network
+
+Service -> Repo: load_ip(hostname)
+activate Repo
+Repo -> FS: read hostname.json
+FS --> Repo: stored IP entry
+Repo --> Service: old_ip
+deactivate Repo
+
+alt IP changed
+    Service -> Handler: validate_config(config)
+    activate Handler
+    Handler -> WebServer: nginx -t (test config)
+    WebServer --> Handler: validation result
+    Handler --> Service: validation OK
+    deactivate Handler
+    
+    Service -> Handler: create_backup(config)
+    activate Handler
+    Handler -> FS: copy config file
+    FS --> Handler: backup_path
+    Handler --> Service: backup created
+    deactivate Handler
+    
+    Service -> Handler: update_allow_list(config, hostname, old_ip, new_ip)
+    activate Handler
+    Handler -> FS: read config file
+    FS --> Handler: config content
+    Handler -> Handler: replace IP in config
+    Handler -> FS: write updated config
+    FS --> Handler: write complete
+    Handler -> WebServer: nginx -s reload
+    WebServer --> Handler: reload complete
+    Handler --> Service: update successful
+    deactivate Handler
+    
+    Service -> Repo: store_ip(hostname, new_ip)
+    activate Repo
+    Repo -> FS: write hostname.json
+    FS --> Repo: write complete
+    Repo --> Service: storage complete
+    deactivate Repo
+    
+    Service -> Notify: notify_ip_change(hostname, old_ip, new_ip)
+    activate Notify
+    Notify -> CLI: print success message
+    Notify --> Service: notification sent
+    deactivate Notify
+    
+    Service --> UC: UpdateResult::Updated
+else IP unchanged
+    Service --> UC: UpdateResult::NoChange
+end
+
+deactivate Service
+
+UC --> App: Result<UpdateResult>
+deactivate UC
+
+App --> CLI: Result<MultiConfigResult>
+deactivate App
+
+CLI --> User: Success/Error message
+deactivate CLI
+
+== Error Handling Flow ==
+
+note over Service, Notify: Any error in the flow
+Service -> Notify: notify_error(error, context)
+activate Notify
+Notify -> CLI: print error message
+Notify --> Service: error logged
+deactivate Notify
+
+Service --> UC: Err(error)
+UC --> App: Err(error)
+App --> CLI: Err(error)
+CLI --> User: Error message + exit(1)
+
+@enduml

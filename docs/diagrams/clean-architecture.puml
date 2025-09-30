@@ -1,0 +1,206 @@
+@startuml clean-architecture
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #1976D2
+skinparam packageBackgroundColor #E3F2FD
+
+title DDNS Updater - Clean Architecture Layers
+
+package "Interface Layer" as interface #E1F5FE {
+    class CliInterface {
+        +run(): Result<(), Error>
+        -run_async(args: Args): Result<(), Error>
+        -display_results(hostname: &str, result: &MultiConfigResult, verbose: bool)
+    }
+    
+    class Args {
+        +host: String
+        +nginx_config: Option<PathBuf>
+        +config_dir: Option<PathBuf>
+        +pattern: String
+        +backup_dir: Option<PathBuf>
+        +no_reload: bool
+        +verbose: bool
+        +parse_args(): Args
+    }
+}
+
+package "Application Layer" as application #F3E5F5 {
+    class DdnsApplication {
+        -config: AppConfig
+        -ip_repository: Arc<dyn IpRepository>
+        -network_service: Arc<dyn NetworkService>
+        -notification_service: Arc<dyn NotificationService>
+        -config_discovery: Arc<dyn ConfigDiscoveryService>
+        +new(config: AppConfig): Result<Self, Error>
+        +process_single_config(hostname: &str, config: &WebServerConfig): Result<UpdateResult, Error>
+        +process_multiple_configs(hostname: &str, configs: Vec<WebServerConfig>): Result<MultiConfigResult, Error>
+        +validate_configs(configs: &[WebServerConfig]): Result<Vec<ValidationResult>, Error>
+    }
+    
+    class ServiceFactory {
+        +create_ip_repository(storage_dir: PathBuf): Result<Arc<dyn IpRepository>, Error>
+        +create_web_server_handler(server_type: WebServerType, backup_dir: Option<PathBuf>): Arc<dyn WebServerHandler>
+        +create_network_service(): Arc<dyn NetworkService>
+        +create_notification_service(verbose: bool): Arc<dyn NotificationService>
+        +create_config_discovery_service(): Arc<dyn ConfigDiscoveryService>
+    }
+    
+    class UpdateDdnsUseCase {
+        -service: DdnsUpdateService
+        +new(ip_repository: Arc<dyn IpRepository>, web_server_handler: Arc<dyn WebServerHandler>, network_service: Arc<dyn NetworkService>, notification_service: Arc<dyn NotificationService>): Self
+        +execute(hostname: &str, config: &WebServerConfig): Result<UpdateResult, Error>
+        +execute_with_options(hostname: &str, config: &WebServerConfig, no_reload: bool): Result<UpdateResult, Error>
+    }
+    
+    class AppConfig {
+        +storage_dir: PathBuf
+        +server_type: WebServerType
+        +backup_dir: Option<PathBuf>
+        +no_reload: bool
+        +verbose: bool
+    }
+}
+
+package "Domain Layer" as domain #E8F5E8 {
+    package "Entities" {
+        class IpEntry {
+            +ip: IpAddr
+            +hostname: String
+            +comment: Option<String>
+            +created_at: DateTime<Utc>
+            +updated_at: DateTime<Utc>
+            +new(ip: IpAddr, hostname: String, comment: Option<String>): Self
+            +update_ip(new_ip: IpAddr)
+            +update_comment(comment: Option<String>)
+        }
+        
+        class WebServerConfig {
+            +path: PathBuf
+            +server_type: WebServerType
+            +backup_path: Option<PathBuf>
+            +new(path: PathBuf, server_type: WebServerType): Self
+        }
+        
+        enum WebServerType {
+            Nginx
+            Apache
+            Caddy
+            Traefik
+        }
+    }
+    
+    package "Services" {
+        class DdnsUpdateService {
+            -ip_repository: Arc<dyn IpRepository>
+            -web_server_handler: Arc<dyn WebServerHandler>
+            -network_service: Arc<dyn NetworkService>
+            -notification_service: Arc<dyn NotificationService>
+            +new(...): Self
+            +update_ddns(hostname: &str, config: &WebServerConfig): Result<UpdateResult, Error>
+            +update_ddns_with_options(hostname: &str, config: &WebServerConfig, no_reload: bool): Result<UpdateResult, Error>
+            +list_entries(): Result<Vec<IpEntry>, Error>
+        }
+    }
+    
+    package "Ports" {
+        interface IpRepository {
+            +store_ip(hostname: &str, ip: IpAddr): Result<(), Error>
+            +load_ip(hostname: &str): Result<Option<IpAddr>, Error>
+            +get_ip_entry(hostname: &str): Result<Option<IpEntry>, Error>
+            +list_all_entries(): Result<Vec<IpEntry>, Error>
+            +delete_entry(hostname: &str): Result<bool, Error>
+        }
+        
+        interface WebServerHandler {
+            +update_allow_list(config: &WebServerConfig, hostname: &str, old_ip: Option<IpAddr>, new_ip: IpAddr): Result<bool, Error>
+            +validate_config(config: &WebServerConfig): Result<(), Error>
+            +create_backup(config: &WebServerConfig): Result<PathBuf, Error>
+            +test_configuration(config: &WebServerConfig): Result<bool, Error>
+            +reload_server(): Result<(), Error>
+        }
+        
+        interface NetworkService {
+            +get_public_ip(): Result<IpAddr, Error>
+            +resolve_hostname(hostname: &str): Result<Vec<IpAddr>, Error>
+            +is_reachable(ip: IpAddr): Result<bool, Error>
+        }
+        
+        interface NotificationService {
+            +notify_ip_change(hostname: &str, old_ip: Option<IpAddr>, new_ip: IpAddr): Result<(), Error>
+            +notify_error(error: &str, context: Option<&str>): Result<(), Error>
+        }
+        
+        interface ConfigDiscoveryService {
+            +discover_configs(pattern: Option<&str>): Result<Vec<WebServerConfig>, Error>
+            +detect_server_type(config_path: &Path): Result<WebServerType, DomainError>
+        }
+    }
+}
+
+package "Infrastructure Layer" as infrastructure #FFF3E0 {
+    class FileIpRepository {
+        -storage_dir: PathBuf
+        +new(storage_dir: PathBuf): Result<Self, Error>
+        -get_file_path(hostname: &str): PathBuf
+    }
+    
+    class NginxHandler {
+        -backup_dir: Option<PathBuf>
+        +new(): Self
+        +with_backup_dir(backup_dir: Option<PathBuf>): Self
+        -update_nginx_config(config_path: &Path, hostname: &str, old_ip: Option<IpAddr>, new_ip: IpAddr): Result<bool, Error>
+        -validate_config(config_path: &Path): Result<(), Error>
+        -validate_nginx_structure(content: &str): bool
+    }
+    
+    class ApacheHandler {
+        +new(): Self
+        -update_apache_config(config_path: &Path, hostname: &str, old_ip: Option<IpAddr>, new_ip: IpAddr): Result<bool, Error>
+    }
+    
+    class HttpNetworkService {
+        +new(): Self
+        -fetch_ip_from_service(url: &str): Result<IpAddr, Error>
+    }
+    
+    class ConsoleNotificationService {
+        -verbose: bool
+        +new(verbose: bool): Self
+    }
+    
+    class FileSystemConfigDiscovery {
+        +new(): Self
+        -scan_directory(dir: &Path, pattern: &str): Result<Vec<PathBuf>, Error>
+    }
+}
+
+' Relationships
+CliInterface --> DdnsApplication
+CliInterface --> Args
+DdnsApplication --> ServiceFactory
+DdnsApplication --> UpdateDdnsUseCase
+DdnsApplication --> AppConfig
+UpdateDdnsUseCase --> DdnsUpdateService
+DdnsUpdateService --> IpRepository
+DdnsUpdateService --> WebServerHandler
+DdnsUpdateService --> NetworkService
+DdnsUpdateService --> NotificationService
+ServiceFactory --> FileIpRepository
+ServiceFactory --> NginxHandler
+ServiceFactory --> ApacheHandler
+ServiceFactory --> HttpNetworkService
+ServiceFactory --> ConsoleNotificationService
+ServiceFactory --> FileSystemConfigDiscovery
+FileIpRepository ..|> IpRepository
+NginxHandler ..|> WebServerHandler
+ApacheHandler ..|> WebServerHandler
+HttpNetworkService ..|> NetworkService
+ConsoleNotificationService ..|> NotificationService
+FileSystemConfigDiscovery ..|> ConfigDiscoveryService
+DdnsUpdateService --> IpEntry
+DdnsUpdateService --> WebServerConfig
+WebServerConfig --> WebServerType
+
+@enduml

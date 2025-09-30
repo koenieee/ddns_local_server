@@ -1,0 +1,127 @@
+@startuml system-architecture
+skinparam backgroundColor #FAFAFA
+skinparam roundcorner 15
+skinparam packageBackgroundColor #E3F2FD
+skinparam componentBackgroundColor #FFFFFF
+skinparam componentBorderColor #1976D2
+
+title DDNS Updater - System Architecture Overview
+
+package "External Systems" as external {
+    cloud "Public IP\nProviders" as ipProviders {
+        component "ipify.org" as ipify
+        component "httpbin.org" as httpbin
+        component "icanhazip.com" as icanhazip
+    }
+    
+    cloud "DNS Providers" as dnsProviders {
+        component "Domain Names" as domains
+    }
+    
+    node "Web Server" as webserver {
+        component "nginx" as nginx
+        component "Apache" as apache
+        component "Caddy" as caddy
+        component "Traefik" as traefik
+    }
+}
+
+package "DDNS Updater System" as system {
+    package "Interface Layer" as interface {
+        component "CLI Interface" as cli
+        component "Args Parser" as args
+    }
+    
+    package "Application Layer" as application {
+        component "DDNS Application" as ddnsApp
+        component "Service Factory" as factory
+        component "Use Cases" as usecases {
+            component "Update DDNS" as updateUC
+            component "Config Validation" as validationUC
+        }
+        component "App Config" as appConfig
+    }
+    
+    package "Domain Layer" as domain {
+        package "Entities" as entities {
+            component "IP Entry" as ipEntry
+            component "WebServer Config" as wsConfig
+            component "WebServer Type" as wsType
+        }
+        
+        package "Services" as services {
+            component "DDNS Update Service" as ddnsService
+        }
+        
+        package "Ports (Interfaces)" as ports {
+            interface "IP Repository" as ipRepo
+            interface "WebServer Handler" as wsHandler
+            interface "Network Service" as networkSvc
+            interface "Notification Service" as notifSvc
+            interface "Config Discovery" as configDisc
+        }
+    }
+    
+    package "Infrastructure Layer" as infrastructure {
+        component "File IP Repository" as fileRepo
+        component "Nginx Handler" as nginxHandler
+        component "Apache Handler" as apacheHandler
+        component "HTTP Network Service" as httpNetwork
+        component "Console Notifications" as consoleNotif
+        component "Config Discovery" as fileConfigDisc
+    }
+}
+
+package "File System" as filesystem {
+    folder "Configuration Files" as configs {
+        file "nginx.conf" as nginxConf
+        file "apache.conf" as apacheConf
+        file "*.conf" as otherConf
+    }
+    
+    folder "Storage Directory" as storage {
+        file "hostname1.json" as ip1
+        file "hostname2.json" as ip2
+        file "backup files" as backups
+    }
+}
+
+' Relationships
+cli --> args
+cli --> ddnsApp
+ddnsApp --> factory
+ddnsApp --> usecases
+factory --> fileRepo
+factory --> nginxHandler
+factory --> apacheHandler
+factory --> httpNetwork
+factory --> consoleNotif
+factory --> fileConfigDisc
+
+updateUC --> ddnsService
+validationUC --> ddnsService
+
+ddnsService --> ipRepo
+ddnsService --> wsHandler
+ddnsService --> networkSvc
+ddnsService --> notifSvc
+
+fileRepo --> ipRepo
+nginxHandler --> wsHandler
+apacheHandler --> wsHandler
+httpNetwork --> networkSvc
+consoleNotif --> notifSvc
+fileConfigDisc --> configDisc
+
+fileRepo --> storage
+nginxHandler --> configs
+apacheHandler --> configs
+nginxHandler --> backups
+apacheHandler --> backups
+
+httpNetwork --> ipProviders
+ddnsService --> domains
+nginxHandler --> nginx
+apacheHandler --> apache
+
+@enduml

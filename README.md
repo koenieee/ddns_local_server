@@ -3,6 +3,7 @@
 [![CI/CD Pipeline](https://github.com/koenieee/ddns_local_server/actions/workflows/ci.yml/badge.svg)](https://github.com/koenieee/ddns_local_server/actions/workflows/ci.yml)
 [![Security Audit](https://github.com/koenieee/ddns_local_server/actions/workflows/nightly.yml/badge.svg)](https://github.com/koenieee/ddns_local_server/actions/workflows/nightly.yml)
 [![Documentation](https://github.com/koenieee/ddns_local_server/actions/workflows/docs.yml/badge.svg)](https://github.com/koenieee/ddns_local_server/actions/workflows/docs.yml)
+[![Architecture Diagrams](https://github.com/koenieee/ddns_local_server/actions/workflows/generate-diagrams.yml/badge.svg)](https://github.com/koenieee/ddns_local_server/actions/workflows/generate-diagrams.yml)
 
 A Rust-based Dynamic DNS (DDNS) updater that automatically manages nginx allow lists when your public IP address changes.
 
@@ -153,6 +154,35 @@ Options:
   -h, --help                     Print help
   -V, --version                  Print version
 ```
+
+## 🏗️ Architecture
+
+The DDNS updater is built using **Clean Architecture** principles with a trait-based design that supports multiple web servers and provides excellent testability and maintainability.
+
+### Architecture Diagrams
+
+[![System Architecture](https://img.shields.io/badge/View-System%20Architecture-blue?style=for-the-badge)](docs/images/system-architecture.svg)
+[![Clean Architecture](https://img.shields.io/badge/View-Clean%20Architecture-green?style=for-the-badge)](docs/images/clean-architecture.svg)
+[![Data Flow](https://img.shields.io/badge/View-Data%20Flow-orange?style=for-the-badge)](docs/images/data-flow.svg)
+
+| Diagram | Description |
+|---------|-------------|
+| **[System Architecture](docs/images/system-architecture.svg)** | High-level overview of the entire system showing external dependencies and internal components |
+| **[Clean Architecture](docs/images/clean-architecture.svg)** | Detailed view of architectural layers and dependency inversion through traits |
+| **[Data Flow](docs/images/data-flow.svg)** | Step-by-step sequence of a DDNS update from CLI input to completion |
+| **[Component Interaction](docs/images/component-interaction.svg)** | Component relationships and communication patterns |
+| **[State Diagram](docs/images/state-diagram.svg)** | State machine representation of the update process |
+| **[Deployment](docs/images/deployment.svg)** | Production deployment view with systemd integration |
+
+### Key Architectural Features
+
+- **🔄 Clean Architecture**: Domain-driven design with dependency inversion
+- **🔧 Multi-Web Server Support**: Nginx ✅, Apache ✅, Caddy 🔲, Traefik 🔲
+- **⚡ Async/Await**: Full async support with tokio runtime
+- **🧪 Testable Design**: Each layer can be tested independently
+- **🔌 Plugin Architecture**: Easy to extend with new web server types
+
+📚 **[View Complete Architecture Documentation →](docs/README.md)**
 
 ## How It Works
 
