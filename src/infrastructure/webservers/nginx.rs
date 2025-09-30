@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-use regex::Regex;
 use std::net::IpAddr;
 use std::path::PathBuf;
 use std::process::Command;
@@ -53,7 +52,7 @@ impl NginxHandler {
         &self,
         config_path: &std::path::Path,
         hostname: &str,
-        old_ip: Option<IpAddr>,
+        _old_ip: Option<IpAddr>,
         new_ip: IpAddr,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let content = fs::read_to_string(config_path).await?;
@@ -63,44 +62,31 @@ impl NginxHandler {
         // Comment pattern for hostname identification
         let hostname_comment = format!("# DDNS: {}", hostname);
 
-        // Remove old entries for this hostname
-        if let Some(old_ip) = old_ip {
-            let old_allow_pattern = format!("allow {};", old_ip);
-            let has_hostname_comment = lines.iter().any(|l| l.contains(&hostname_comment));
-            lines.retain(|line| {
-                !line.trim().starts_with(&old_allow_pattern) || !has_hostname_comment
-            });
-        }
+        // Look for existing DDNS-related entries for this hostname (both formats)
+        // Only replace existing entries - do NOT add new ones if none exist
 
-        // Find location blocks and add new allow rule
-        let location_regex = Regex::new(r"^\s*location\s+.*\{\s*$")?;
-        let server_regex = Regex::new(r"^\s*server\s*\{\s*$")?;
-
+        // First pass: look for existing entries to replace
         for i in 0..lines.len() {
-            if location_regex.is_match(&lines[i]) || server_regex.is_match(&lines[i]) {
-                // Look for the next closing brace to find insertion point
-                let mut brace_count = 1;
-                for j in (i + 1)..lines.len() {
-                    if lines[j].contains('{') {
-                        brace_count += lines[j].matches('{').count();
-                    }
-                    if lines[j].contains('}') {
-                        brace_count -= lines[j].matches('}').count();
-                        if brace_count == 0 {
-                            // Insert allow rule before closing brace
-                            let indent = "    "; // Standard nginx indentation
-                            lines.insert(
-                                j,
-                                format!("{}allow {}; {}", indent, new_ip, hostname_comment),
-                            );
-                            updated = true;
-                            break;
-                        }
-                    }
-                }
+            let line = &lines[i];
+            let trimmed = line.trim();
+
+            // Check if this is a DDNS-related allow entry for our hostname
+            if trimmed.starts_with("allow ")
+                && (trimmed.contains(&format!("# DDNS: {}", hostname))
+                    || trimmed.contains(&format!("# DDNS for {}", hostname)))
+            {
+                // Get the current indentation
+                let indent = &line[..line.len() - line.trim_start().len()];
+
+                // Replace this line with our new entry
+                lines[i] = format!("{}allow {}; {}", indent, new_ip, hostname_comment);
+                updated = true;
                 break;
             }
         }
+
+        // Important: Do NOT add new entries if none existed before
+        // This ensures we only update existing DDNS-managed entries
 
         if updated {
             let new_content = lines.join("\n");
@@ -112,6 +98,11 @@ impl NginxHandler {
                     return Err(e.into());
                 }
             }
+        } else {
+            eprintln!(
+                "DEBUG: No existing DDNS entry found for hostname: {}, not adding new entry",
+                hostname
+            );
         }
 
         Ok(updated)

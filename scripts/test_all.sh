@@ -80,13 +80,27 @@ print_section "Running CLI Integration Tests"
 if [ -f "scripts/test_cli_simple.sh" ]; then
     chmod +x scripts/test_cli_simple.sh
     if scripts/test_cli_simple.sh; then
-        echo -e "${GREEN}✓ All CLI tests passed${NC}"
+        echo -e "${GREEN}✓ Basic CLI tests passed${NC}"
     else
-        echo -e "${RED}❌ CLI tests failed${NC}"
+        echo -e "${RED}❌ Basic CLI tests failed${NC}"
         exit 1
     fi
 else
     echo -e "${YELLOW}⚠ CLI test script not found, skipping CLI tests${NC}"
+fi
+
+# Run position and non-addition tests
+print_section "Running Position & Non-Addition Tests"
+if [ -f "scripts/test_position_and_non_addition.sh" ]; then
+    chmod +x scripts/test_position_and_non_addition.sh
+    if scripts/test_position_and_non_addition.sh; then
+        echo -e "${GREEN}✓ All position and non-addition tests passed${NC}"
+    else
+        echo -e "${RED}❌ Position and non-addition tests failed${NC}"
+        exit 1
+    fi
+else
+    echo -e "${YELLOW}⚠ Position test script not found, skipping position tests${NC}"
 fi
 
 # Check code formatting (if rustfmt is available)
