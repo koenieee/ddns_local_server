@@ -104,7 +104,7 @@ if [[ "$USE_CROSS" == "true" && "$CARGO_TARGET" = "aarch64-unknown-linux-gnu" ]]
 fi
 
 if [[ "$USE_CROSS" == "true" ]]; then
-    print_status "Using cross-compilation..."
+    print_status "Using cross-compilation with rustls (no OpenSSL dependency)..."
     cross build --release --target "$CARGO_TARGET"
     BINARY_PATH="target/$CARGO_TARGET/release/ddns_updater"
 else
