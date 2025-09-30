@@ -176,7 +176,24 @@ print_status "Building Debian package..."
 export SOURCE_DATE_EPOCH=$(date +%s)
 
 # Build the package (override build dependencies since we have rustc/cargo via rustup)
-if dpkg-buildpackage -us -uc -b -d; then
+# Pass cross-compilation environment variables to dpkg-buildpackage
+if [[ "$USE_CROSS" == "true" && "$CARGO_TARGET" == "aarch64-unknown-linux-gnu" ]]; then
+    print_status "Building with cross-compilation for ARM64..."
+    if dpkg-buildpackage -us -uc -b -d -a arm64 --host-arch arm64; then
+        BUILD_SUCCESS=true
+    else
+        BUILD_SUCCESS=false
+    fi
+else
+    print_status "Building with native compilation..."
+    if dpkg-buildpackage -us -uc -b -d; then
+        BUILD_SUCCESS=true
+    else
+        BUILD_SUCCESS=false
+    fi
+fi
+
+if [[ "$BUILD_SUCCESS" == "true" ]]; then
     print_success "Debian package built successfully!"
     
     # Find and display the generated package

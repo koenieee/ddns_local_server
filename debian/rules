@@ -18,15 +18,11 @@ override_dh_strip:
 	# Handle cross-compilation stripping - use appropriate objcopy for target architecture
 	@set -e; \
 	if [ "$(USE_CROSS)" = "true" ] && [ "$(CARGO_TARGET)" = "aarch64-unknown-linux-gnu" ]; then \
-		echo "Using aarch64 strip tools for cross-compilation..."; \
-		if command -v aarch64-linux-gnu-objcopy >/dev/null 2>&1; then \
-			OBJCOPY=aarch64-linux-gnu-objcopy STRIP=aarch64-linux-gnu-strip dh_strip; \
-		else \
-			echo "Cross-compilation tools not found, skipping strip to avoid objcopy errors"; \
-			dh_strip --no-automatic-dbgsym || true; \
-		fi; \
+		echo "Cross-compilation detected for ARM64 - skipping debug symbol stripping to avoid objcopy format issues"; \
+		echo "Binary will be stripped of debug symbols but no separate debug package will be created"; \
+		dh_strip --no-automatic-dbgsym; \
 	else \
-		echo "Using default strip tools..."; \
+		echo "Using default strip tools for native compilation..."; \
 		dh_strip; \
 	fi
 
