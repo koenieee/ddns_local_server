@@ -14,6 +14,21 @@ override_dh_auto_build:
 		cargo build --release --target $(CARGO_TARGET); \
 	fi
 
+override_dh_strip:
+	# Handle cross-compilation stripping - use appropriate objcopy for target architecture
+	@if [ "$(USE_CROSS)" = "true" ] && [ "$(CARGO_TARGET)" = "aarch64-unknown-linux-gnu" ]; then \
+		echo "Using aarch64 strip tools for cross-compilation..."; \
+		if command -v aarch64-linux-gnu-objcopy >/dev/null 2>&1; then \
+			OBJCOPY=aarch64-linux-gnu-objcopy STRIP=aarch64-linux-gnu-strip dh_strip; \
+		else \
+			echo "Cross-compilation tools not found, skipping strip to avoid objcopy errors"; \
+			dh_strip --no-automatic-dbgsym || true; \
+		fi; \
+	else \
+		echo "Using default strip tools..."; \
+		dh_strip; \
+	fi
+
 override_dh_shlibdeps:
 	# Suppress diversions and missing info warnings for Rust binary
 	# Try normal shlibdeps first, fallback to ignore missing info if warnings occur

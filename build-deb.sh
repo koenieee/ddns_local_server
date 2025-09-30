@@ -82,7 +82,26 @@ CARGO_TARGET=${CARGO_TARGET:-"x86_64-unknown-linux-gnu"}
 USE_CROSS=${USE_CROSS:-"false"}
 DEB_HOST_ARCH=${DEB_HOST_ARCH:-"amd64"}
 
-print_status "Building for target: $CARGO_TARGET (arch: $DEB_HOST_ARCH)"
+print_status "Build Configuration:"
+print_status "  CARGO_TARGET: $CARGO_TARGET"
+print_status "  USE_CROSS: $USE_CROSS"
+print_status "  DEB_HOST_ARCH: $DEB_HOST_ARCH"
+
+# Check for cross-compilation tools if needed
+if [[ "$USE_CROSS" == "true" && "$CARGO_TARGET" = "aarch64-unknown-linux-gnu" ]]; then
+    print_status "Checking ARM64 cross-compilation tools..."
+    if command -v aarch64-linux-gnu-gcc >/dev/null 2>&1; then
+        print_success "ARM64 GCC found: $(which aarch64-linux-gnu-gcc)"
+    else
+        print_warning "ARM64 GCC not found - build may fail"
+    fi
+    
+    if command -v aarch64-linux-gnu-objcopy >/dev/null 2>&1; then
+        print_success "ARM64 objcopy found: $(which aarch64-linux-gnu-objcopy)"
+    else
+        print_warning "ARM64 objcopy not found - may cause stripping issues"
+    fi
+fi
 
 if [[ "$USE_CROSS" == "true" ]]; then
     print_status "Using cross-compilation..."
