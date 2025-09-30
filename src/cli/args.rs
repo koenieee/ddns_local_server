@@ -1,3 +1,4 @@
+use crate::config::is_nginx_config_file;
 use clap::Parser;
 use std::path::PathBuf;
 
@@ -153,7 +154,7 @@ impl Args {
                 && self.matches_pattern(filename, pattern)
             {
                 // Validate that it's actually an nginx config file
-                match crate::is_nginx_config_file(&path.to_string_lossy()) {
+                match is_nginx_config_file(&path.to_string_lossy()) {
                     Ok(true) => {
                         config_files.push(path);
                     }

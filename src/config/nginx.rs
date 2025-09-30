@@ -18,7 +18,7 @@ pub fn write_file(path: &str, contents: &str) -> Result<(), std::io::Error> {
 }
 
 /// Check if a file is likely an nginx configuration file
-pub fn is_nginx_config_file(path: &str) -> Result<bool, Box<dyn std::error::Error>> {
+pub fn is_nginx_config_file(path: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let content = open_and_read_file(path)?;
     Ok(is_nginx_config_content(&content))
 }
@@ -136,7 +136,7 @@ pub fn update_nginx_allow_ip(
     old_ip: Option<IpAddr>,
     new_ip: IpAddr,
     comment: Option<&str>,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let config_content = open_and_read_file(config_path)?;
     let mut lines: Vec<String> = config_content.lines().map(|s| s.to_string()).collect();
     let comment_text = comment.unwrap_or("DDNS");
@@ -254,7 +254,7 @@ pub fn update_nginx_allow_ip(
 }
 
 /// Create a backup of nginx config file
-pub fn backup_nginx_config(config_path: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn backup_nginx_config(config_path: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     backup_nginx_config_to_dir(config_path, None)
 }
 
@@ -262,7 +262,7 @@ pub fn backup_nginx_config(config_path: &str) -> Result<String, Box<dyn std::err
 pub fn backup_nginx_config_to_dir(
     config_path: &str,
     backup_dir: Option<&std::path::Path>,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     use std::path::Path;
 
     let config_file = Path::new(config_path);
@@ -302,7 +302,7 @@ pub fn is_nginx_installed() -> bool {
 }
 
 /// Reload nginx configuration (only if nginx is installed)
-pub fn reload_nginx() -> Result<(), Box<dyn std::error::Error>> {
+pub fn reload_nginx() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use std::process::Command;
 
     if !is_nginx_installed() {

@@ -24,7 +24,7 @@ pub fn update_nginx_allow_ip(
     old_ip: Option<IpAddr>,
     new_ip: IpAddr,
     comment: Option<&str>,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let config_content = open_and_read_file(config_path)?;
     let mut lines: Vec<String> = config_content.lines().map(|s| s.to_string()).collect();
     let mut updated = false;
@@ -117,7 +117,7 @@ pub fn update_nginx_allow_ip(
 }
 
 /// Create a backup of nginx config file
-pub fn backup_nginx_config(config_path: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn backup_nginx_config(config_path: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let backup_path = format!(
         "{}.backup.{}",
         config_path,
@@ -134,7 +134,7 @@ pub fn backup_nginx_config(config_path: &str) -> Result<String, Box<dyn std::err
 }
 
 /// Reload nginx configuration
-pub fn reload_nginx() -> Result<(), Box<dyn std::error::Error>> {
+pub fn reload_nginx() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use std::process::Command;
 
     println!("Reloading nginx configuration...");

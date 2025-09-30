@@ -4,14 +4,14 @@ use std::net::IpAddr;
 use std::path::Path;
 
 /// Store an IP address to a file
-pub fn store_ip(ip: IpAddr, file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub fn store_ip(ip: IpAddr, file_path: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut file = fs::File::create(file_path)?;
     writeln!(file, "{}", ip)?;
     Ok(())
 }
 
 /// Load an IP address from a file
-pub fn load_ip(file_path: &str) -> Result<IpAddr, Box<dyn std::error::Error>> {
+pub fn load_ip(file_path: &str) -> Result<IpAddr, Box<dyn std::error::Error + Send + Sync>> {
     let content = fs::read_to_string(file_path)?;
     let ip_str = content.trim();
     let ip: IpAddr = ip_str.parse()?;
@@ -22,7 +22,7 @@ pub fn load_ip(file_path: &str) -> Result<IpAddr, Box<dyn std::error::Error>> {
 pub fn check_and_update_ip(
     current_ip: IpAddr,
     file_path: &str,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
     let ip_changed = if Path::new(file_path).exists() {
         match load_ip(file_path) {
             Ok(stored_ip) => {
