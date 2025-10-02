@@ -334,7 +334,9 @@ fn cleanup_test_artifacts() {
                     // Don't double-report
                     match fs::remove_file(entry.path()) {
                         Ok(_) => cleaned_items.push(format!("file {}", file_name)),
-                        Err(e) => eprintln!("Warning: Failed to remove IP file {}: {}", file_name, e),
+                        Err(e) => {
+                            eprintln!("Warning: Failed to remove IP file {}: {}", file_name, e)
+                        }
                     }
                 }
             }
