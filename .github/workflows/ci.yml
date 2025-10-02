@@ -15,7 +15,7 @@ env:
 jobs:
   rust-check:
     name: Rust Quality Checks
-    runs-on: ubuntu-20.04  # Use older Ubuntu for Debian 12 compatibility
+    runs-on: ubuntu-22.04  # Ubuntu 22.04 is compatible with Debian 12
 
     steps:
     - name: Checkout code
@@ -52,7 +52,7 @@ jobs:
   # Cross-compilation builds with Debian 12 compatibility
   build:
     name: Build (${{ matrix.target }})
-    runs-on: ubuntu-20.04  # Use older Ubuntu for better glibc compatibility
+    runs-on: ubuntu-22.04  # Ubuntu 22.04 is compatible with Debian 12
     needs: rust-check
     
     strategy:
@@ -140,7 +140,7 @@ jobs:
 
   debian-package:
     name: Build Debian Package (${{ matrix.arch }})
-    runs-on: ubuntu-20.04  # Use older Ubuntu for Debian 12 compatibility
+    runs-on: ubuntu-22.04  # Ubuntu 22.04 is compatible with Debian 12
     needs: rust-check
     
     strategy:

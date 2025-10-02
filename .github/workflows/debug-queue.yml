@@ -27,9 +27,9 @@ jobs:
         cargo --version
         echo "Rust toolchain installed successfully"
 
-  debug-ubuntu-20:
-    name: Debug Ubuntu 20.04
-    runs-on: ubuntu-20.04  # Test if ubuntu-20.04 is available
+  debug-ubuntu-22:
+    name: Debug Ubuntu 22.04
+    runs-on: ubuntu-22.04  # Test ubuntu-22.04 availability
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -37,6 +37,6 @@ jobs:
     - name: Debug info
       run: |
         echo "Runner: $(uname -a)"
-        echo "Available runners: ubuntu-20.04"
+        echo "Available runners: ubuntu-22.04"
         echo "Current time: $(date)"
-        echo "Ubuntu 20.04 runner working"
+        echo "Ubuntu 22.04 runner working"
