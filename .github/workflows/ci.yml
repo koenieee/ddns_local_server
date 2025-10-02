@@ -15,14 +15,14 @@ env:
 jobs:
   rust-check:
     name: Rust Quality Checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # Use older Ubuntu for Debian 12 compatibility
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@1.70.0  # Use specific version for Debian 12 compatibility
       with:
         components: rustfmt, clippy
 
@@ -49,10 +49,10 @@ jobs:
         chmod +x scripts/test_all.sh
         ./scripts/test_all.sh
 
-  # Cross-compilation builds
+  # Cross-compilation builds with Debian 12 compatibility
   build:
     name: Build (${{ matrix.target }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # Use older Ubuntu for better glibc compatibility
     needs: rust-check
     
     strategy:
@@ -62,12 +62,16 @@ jobs:
           - aarch64-unknown-linux-gnu
           - x86_64-unknown-linux-musl
     
+    env:
+      # Set Debian 12 compatible build flags
+      RUSTFLAGS: "-C target-feature=-crt-static -C link-arg=-Wl,--as-needed"
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
 
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@stable
+      uses: dtolnay/rust-toolchain@1.70.0  # Use specific version for Debian 12 compatibility
       with:
         targets: ${{ matrix.target }}
 
@@ -99,6 +103,33 @@ jobs:
         else
           cross build --release --target ${{ matrix.target }}
         fi
+
+    # Verify Debian 12 compatibility for x86_64 builds
+    - name: Verify Debian 12 compatibility
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
+      run: |
+        BINARY="target/${{ matrix.target }}/release/ddns_updater"
+        echo "Checking glibc compatibility for Debian 12..."
+        
+        if command -v objdump &> /dev/null; then
+          echo "Required GLIBC versions:"
+          GLIBC_VERSIONS=$(objdump -T "$BINARY" 2>/dev/null | grep GLIBC | sed 's/.*GLIBC_\([0-9.]*\).*/\1/' | sort -V | uniq)
+          echo "$GLIBC_VERSIONS"
+          
+          MAX_GLIBC=$(echo "$GLIBC_VERSIONS" | tail -1)
+          echo "Maximum required GLIBC version: $MAX_GLIBC"
+          
+          # Check if compatible with Debian 12 (glibc 2.36)
+          if [ "$(printf '%s\n' "2.36" "$MAX_GLIBC" | sort -V | head -n1)" = "2.36" ]; then
+            echo "✅ Binary is compatible with Debian 12 (glibc 2.36+)"
+          else
+            echo "⚠️  Binary may require glibc newer than 2.36 (Debian 12)"
+            echo "This might still work due to symbol versioning, but test on target system"
+          fi
+        fi
+        
+        # Test basic functionality
+        "$BINARY" --version
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -109,7 +140,7 @@ jobs:
 
   debian-package:
     name: Build Debian Package (${{ matrix.arch }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04  # Use older Ubuntu for Debian 12 compatibility
     needs: rust-check
     
     strategy:

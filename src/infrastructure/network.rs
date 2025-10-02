@@ -55,7 +55,8 @@ impl NetworkService for HttpNetworkService {
         }
 
         Err(last_error.unwrap_or_else(|| {
-            Box::new(std::io::Error::other(
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
                 "Failed to get public IP from all endpoints",
             ))
         }))
