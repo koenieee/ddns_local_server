@@ -1,0 +1,132 @@
+name: Automated Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-22.04
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION_NAME=${VERSION#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "Extracted version: $VERSION ($VERSION_NAME)"
+      
+      - name: Extract changelog
+        id: changelog
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            VERSION_NAME="${{ steps.version.outputs.version_name }}"
+            CHANGELOG=$(awk "/## \[$VERSION_NAME\]/, /## \[.*\]/ { if (/## \[.*\]/ && !/## \[$VERSION_NAME\]/) exit; print }" CHANGELOG.md | head -n -1)
+            
+            if [ -z "$CHANGELOG" ]; then
+              CHANGELOG="## DDNS Updater ${{ steps.version.outputs.version }}
+
+This is an automated release. See the git history for detailed changes."
+            fi
+            
+            echo "changelog<<EOF" >> $GITHUB_OUTPUT
+            echo "$CHANGELOG" >> $GITHUB_OUTPUT  
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "changelog=No changelog available." >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.82.0
+        with:
+          targets: x86_64-unknown-linux-gnu,aarch64-unknown-linux-gnu
+      
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc-aarch64-linux-gnu pkg-config libssl-dev
+      
+      - name: Configure cross-compilation
+        run: |
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+      
+      - name: Build binaries
+        run: |
+          # Build x86_64
+          cargo build --release --target x86_64-unknown-linux-gnu
+          
+          # Build ARM64
+          cargo build --release --target aarch64-unknown-linux-gnu
+          
+          # Create release directory and copy binaries
+          mkdir -p releases
+          cp target/x86_64-unknown-linux-gnu/release/ddns_updater releases/ddns_updater-${{ steps.version.outputs.version }}-amd64
+          cp target/aarch64-unknown-linux-gnu/release/ddns_updater releases/ddns_updater-${{ steps.version.outputs.version }}-arm64
+          
+          # Create archives
+          tar -czf releases/ddns_updater-${{ steps.version.outputs.version }}-amd64.tar.gz -C target/x86_64-unknown-linux-gnu/release ddns_updater
+          tar -czf releases/ddns_updater-${{ steps.version.outputs.version }}-arm64.tar.gz -C target/aarch64-unknown-linux-gnu/release ddns_updater
+          
+          # Generate checksums
+          cd releases
+          sha256sum * > SHA256SUMS
+          ls -la
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: "Release ${{ steps.version.outputs.version }}"
+          body: |
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## 📦 Installation
+            
+            ### Binary Installation
+            ```bash
+            # For x86_64 (Intel/AMD 64-bit)
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/ddns_updater-${{ steps.version.outputs.version }}-amd64
+            chmod +x ddns_updater-${{ steps.version.outputs.version }}-amd64
+            sudo mv ddns_updater-${{ steps.version.outputs.version }}-amd64 /usr/local/bin/ddns_updater
+            
+            # For ARM64 (Apple Silicon, ARM servers)  
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/ddns_updater-${{ steps.version.outputs.version }}-arm64
+            chmod +x ddns_updater-${{ steps.version.outputs.version }}-arm64
+            sudo mv ddns_updater-${{ steps.version.outputs.version }}-arm64 /usr/local/bin/ddns_updater
+            ```
+            
+            ## 🔍 Verification
+            ```bash
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/SHA256SUMS
+            sha256sum -c SHA256SUMS
+            ```
+            
+            ## 📋 Requirements
+            - **Debian 12+** or **Ubuntu 22.04+** (glibc 2.34+)
+            - **Architecture**: x86_64 (amd64) or ARM64 (aarch64)
+          files: |
+            releases/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Summary
+        run: |
+          echo "🚀 Release ${{ steps.version.outputs.version }} created successfully!"
+          echo "🔗 https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }}"
