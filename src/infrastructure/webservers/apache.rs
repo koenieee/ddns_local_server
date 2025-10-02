@@ -142,9 +142,10 @@ impl WebServerHandler for ApacheHandler {
                 .arg("reload")
                 .arg(service)
                 .output()
-                && output.status.success()
             {
-                return Ok(());
+                if output.status.success() {
+                    return Ok(());
+                }
             }
         }
 

@@ -149,20 +149,21 @@ impl Args {
             let entry = entry.map_err(|e| format!("Failed to read directory entry: {}", e))?;
             let path = entry.path();
 
-            if path.is_file()
-                && let Some(filename) = path.file_name().and_then(|n| n.to_str())
-                && self.matches_pattern(filename, pattern)
-            {
-                // Validate that it's actually an nginx config file
-                match is_nginx_config_file(&path.to_string_lossy()) {
-                    Ok(true) => {
-                        config_files.push(path);
-                    }
-                    Ok(false) => {
-                        skipped_files.push((path, "not an nginx config file".to_string()));
-                    }
-                    Err(e) => {
-                        skipped_files.push((path, format!("validation error: {}", e)));
+            if path.is_file() {
+                if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                    if self.matches_pattern(filename, pattern) {
+                        // Validate that it's actually an nginx config file
+                        match is_nginx_config_file(&path.to_string_lossy()) {
+                            Ok(true) => {
+                                config_files.push(path);
+                            }
+                            Ok(false) => {
+                                skipped_files.push((path, "not an nginx config file".to_string()));
+                            }
+                            Err(e) => {
+                                skipped_files.push((path, format!("validation error: {}", e)));
+                            }
+                        }
                     }
                 }
             }

@@ -329,14 +329,13 @@ fn cleanup_test_artifacts() {
     // Remove any *_ip.txt files in current directory
     if let Ok(entries) = fs::read_dir(".") {
         for entry in entries.flatten() {
-            if let Some(file_name) = entry.file_name().to_str()
-                && file_name.ends_with("_ip.txt")
-                && !ip_file_patterns.contains(&file_name)
-            // Don't double-report
-            {
-                match fs::remove_file(entry.path()) {
-                    Ok(_) => cleaned_items.push(format!("file {}", file_name)),
-                    Err(e) => eprintln!("Warning: Failed to remove IP file {}: {}", file_name, e),
+            if let Some(file_name) = entry.file_name().to_str() {
+                if file_name.ends_with("_ip.txt") && !ip_file_patterns.contains(&file_name) {
+                    // Don't double-report
+                    match fs::remove_file(entry.path()) {
+                        Ok(_) => cleaned_items.push(format!("file {}", file_name)),
+                        Err(e) => eprintln!("Warning: Failed to remove IP file {}: {}", file_name, e),
+                    }
                 }
             }
         }

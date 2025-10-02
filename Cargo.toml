@@ -1,21 +1,35 @@
 [package]
 name = "ddns_updater"
 version = "1.0.0"
-edition = "2024"
+edition = "2021"  # Use 2021 edition for better compatibility
 default-run = "ddns_updater"
+rust-version = "1.70"  # Specify minimum Rust version for Debian 12
 
 [dependencies]
-clap = { version = "4.0", features = ["derive"] }
-tokio = { version = "1.0", features = ["full"] }
-async-trait = "0.1"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-chrono = { version = "0.4", features = ["serde"] }
-regex = "1.0"
-reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
-url = "2.0"
-thiserror = "1.0"
+clap = { version = "4.3.19", features = ["derive"] }
+tokio = { version = "1.28.0", features = ["full"] }
+async-trait = "0.1.71"
+serde = { version = "1.0.164", features = ["derive"] }
+serde_json = "1.0.99"
+chrono = { version = "0.4.26", features = ["serde"] }
+regex = "1.9.0"
+reqwest = { version = "0.11.18", features = ["json", "rustls-tls"], default-features = false }
+url = "2.4.0"
+thiserror = "1.0.44"
 
 [dev-dependencies]
-tempfile = "3.0"
-tokio-test = "0.4"
+tempfile = "3.6.0"
+tokio-test = "0.4.3"
+
+# Build configuration for Debian 12 (libc 2.36-9+deb12u10) compatibility
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+panic = "abort"
+
+# Note: Target-specific rustflags moved to .cargo/config.toml for better control

@@ -1,0 +1,54 @@
+# Multi-stage build for Debian 12 compatibility
+FROM debian:12-slim AS builder
+
+# Install build dependencies for Debian 12
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    ca-certificates \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Rust with a version that produces glibc 2.36 compatible binaries
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- \
+    -y --default-toolchain 1.70.0 --profile minimal
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Set build environment for glibc 2.36 compatibility
+ENV RUSTFLAGS="-C target-feature=-crt-static -C link-arg=-Wl,--as-needed -C target-cpu=x86-64"
+ENV CARGO_BUILD_TARGET="x86_64-unknown-linux-gnu"
+
+WORKDIR /build
+COPY . .
+
+# Build the application
+RUN cargo build --release --target x86_64-unknown-linux-gnu
+
+# Verify glibc compatibility
+RUN objdump -T target/x86_64-unknown-linux-gnu/release/ddns_updater | grep GLIBC | \
+    sed 's/.*GLIBC_\([0-9.]*\).*/\1/' | sort -V | tail -1 | \
+    awk '{if ($1 > 2.36) {print "ERROR: Requires glibc > 2.36"; exit 1} else {print "OK: Compatible with Debian 12"}}'
+
+# Runtime stage - use Debian 12
+FROM debian:12-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    nginx \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the binary
+COPY --from=builder /build/target/x86_64-unknown-linux-gnu/release/ddns_updater /usr/local/bin/
+
+# Create ddns user
+RUN useradd --no-create-home --shell /bin/false ddns
+
+# Create directories
+RUN mkdir -p /var/lib/ddns-updater /var/log/ddns-updater && \
+    chown ddns:ddns /var/lib/ddns-updater /var/log/ddns-updater
+
+USER ddns
+ENTRYPOINT ["ddns_updater"]

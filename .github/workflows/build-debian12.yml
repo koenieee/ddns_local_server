@@ -1,0 +1,148 @@
+name: Build for Debian 12 Compatibility
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  # Force compatibility with Debian 12 (libc 2.36-9+deb12u10)
+  RUSTFLAGS: "-C target-feature=-crt-static -C link-arg=-Wl,--as-needed"
+
+jobs:
+  build-debian12:
+    name: Build for Debian 12
+    runs-on: ubuntu-20.04  # Use older Ubuntu for better glibc compatibility
+    
+    strategy:
+      matrix:
+        target: 
+          - x86_64-unknown-linux-gnu
+          - aarch64-unknown-linux-gnu
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    # Use specific Rust version compatible with Debian 12
+    - name: Install Rust toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: 1.70.0
+        target: ${{ matrix.target }}
+        override: true
+        components: rustfmt, clippy
+    
+    # Install cross-compilation tools for ARM64
+    - name: Install cross-compilation tools
+      if: matrix.target == 'aarch64-unknown-linux-gnu'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-aarch64-linux-gnu
+    
+    # Install build dependencies compatible with older systems
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          pkg-config \
+          libssl-dev \
+          ca-certificates
+    
+    # Configure cross-compilation environment
+    - name: Configure build environment
+      run: |
+        echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+        echo "CC_aarch64_unknown_linux_gnu=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+        echo "CXX_aarch64_unknown_linux_gnu=aarch64-linux-gnu-g++" >> $GITHUB_ENV
+    
+    # Build with explicit target for Debian 12 compatibility
+    - name: Build for ${{ matrix.target }}
+      run: |
+        cargo build --release --target ${{ matrix.target }}
+    
+    # Test the binary (x86_64 only on this runner)
+    - name: Test binary compatibility
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
+      run: |
+        # Check binary exists and is executable
+        ls -la target/${{ matrix.target }}/release/ddns_updater
+        
+        # Check glibc version requirements
+        if command -v objdump &> /dev/null; then
+          echo "GLIBC version requirements:"
+          objdump -T target/${{ matrix.target }}/release/ddns_updater | grep GLIBC | sort -u || echo "No GLIBC symbols found"
+        fi
+        
+        # Check dynamic library dependencies
+        if command -v ldd &> /dev/null; then
+          echo "Dynamic library dependencies:"
+          ldd target/${{ matrix.target }}/release/ddns_updater || echo "Static binary or ldd not available"
+        fi
+        
+        # Test basic functionality
+        target/${{ matrix.target }}/release/ddns_updater --version
+    
+    # Run tests with compatibility settings (x86_64 only)
+    - name: Run tests
+      if: matrix.target == 'x86_64-unknown-linux-gnu'
+      env:
+        DDNS_TEST_MODE: "1"
+      run: cargo test --target ${{ matrix.target }}
+    
+    # Upload binary artifacts
+    - name: Upload binary artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ddns_updater-${{ matrix.target }}-debian12
+        path: target/${{ matrix.target }}/release/ddns_updater
+        retention-days: 30
+
+  # Create release packages for Debian 12
+  package-debian12:
+    name: Package for Debian 12
+    needs: build-debian12
+    runs-on: ubuntu-20.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Download x86_64 binary
+      uses: actions/download-artifact@v3
+      with:
+        name: ddns_updater-x86_64-unknown-linux-gnu-debian12
+        path: ./binaries/x86_64/
+    
+    - name: Download aarch64 binary
+      uses: actions/download-artifact@v3
+      with:
+        name: ddns_updater-aarch64-unknown-linux-gnu-debian12
+        path: ./binaries/aarch64/
+    
+    - name: Create release archives
+      run: |
+        mkdir -p releases
+        
+        # x86_64 archive
+        cd binaries/x86_64
+        chmod +x ddns_updater
+        tar -czf ../../releases/ddns_updater-debian12-x86_64.tar.gz ddns_updater
+        cd ../..
+        
+        # aarch64 archive
+        cd binaries/aarch64
+        chmod +x ddns_updater
+        tar -czf ../../releases/ddns_updater-debian12-aarch64.tar.gz ddns_updater
+        cd ../..
+    
+    - name: Upload release archives
+      uses: actions/upload-artifact@v3
+      with:
+        name: ddns_updater-debian12-releases
+        path: releases/
+        retention-days: 90
