@@ -3,21 +3,19 @@ name = "ddns_updater"
 version = "1.0.0"
 edition = "2021"  # Use 2021 edition for better compatibility
 default-run = "ddns_updater"
-rust-version = "1.82"  # Specify minimum Rust version for Debian 12
+rust-version = "1.70"  # Specify minimum Rust version for Debian 12
 
 [dependencies]
-clap = { version = "4.3.19", features = ["derive"] }
+clap = { version = "4.1.0", features = ["derive"] }
 tokio = { version = "1.28.0", features = ["full"] }
 async-trait = "0.1.71"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.99"
 chrono = { version = "0.4.26", features = ["serde"] }
 regex = "1.9.0"
-reqwest = { version = "0.11.18", features = ["json", "rustls-tls"], default-features = false }
+reqwest = { version = "0.11.10", features = ["json", "rustls-tls"], default-features = false }
 url = "2.4.0"
 thiserror = "1.0.44"
-# Email notification dependencies
-lettre = { version = "0.10.4", default-features = false, features = ["tokio1-rustls-tls"] }
 
 [dev-dependencies]
 tempfile = "3.6.0"
@@ -31,6 +29,9 @@ codegen-units = 1
 panic = "abort"
 strip = true
 
+# Email notification dependencies
+lettre = { version = "0.10.4", default-features = false, features = ["tokio1-rustls-tls"] }
+
 [[bin]]
 name = "ddns_updater"
-path = "src/main.rs"
+path = "src/bin/ddns_updater.rs"
