@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-10-02
+
+### Added
+- **Automated Release System**: Tag-based releases with GitHub Actions
+  - Automatic binary builds for x86_64 and ARM64 architectures
+  - SHA256 checksum generation for asset verification
+  - Changelog extraction and release notes generation
+  - Cross-platform compatibility testing
+
+### Improved
+- **Release Process**: Streamlined from manual to fully automated
+- **Documentation**: Added comprehensive automated release guide
+- **User Experience**: Consistent release assets and installation instructions
+
 ## [1.1.0] - 2025-10-02
 
 ### Added
