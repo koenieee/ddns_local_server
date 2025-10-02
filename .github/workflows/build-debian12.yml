@@ -24,15 +24,13 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     # Use specific Rust version compatible with Debian 12
     - name: Install Rust toolchain
-      uses: actions-rs/toolchain@v1
+      uses: dtolnay/rust-toolchain@1.70.0
       with:
-        toolchain: 1.70.0
-        target: ${{ matrix.target }}
-        override: true
+        targets: ${{ matrix.target }}
         components: rustfmt, clippy
     
     # Install cross-compilation tools for ARM64
@@ -95,7 +93,7 @@ jobs:
     
     # Upload binary artifacts
     - name: Upload binary artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ddns_updater-${{ matrix.target }}-debian12
         path: target/${{ matrix.target }}/release/ddns_updater
@@ -110,16 +108,16 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Download x86_64 binary
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ddns_updater-x86_64-unknown-linux-gnu-debian12
         path: ./binaries/x86_64/
     
     - name: Download aarch64 binary
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: ddns_updater-aarch64-unknown-linux-gnu-debian12
         path: ./binaries/aarch64/
@@ -141,7 +139,7 @@ jobs:
         cd ../..
     
     - name: Upload release archives
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ddns_updater-debian12-releases
         path: releases/
