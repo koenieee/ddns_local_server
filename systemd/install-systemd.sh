@@ -286,7 +286,28 @@ StandardError=journal
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=$BACKUP_DIR /etc/nginx /var/lib/ddns-updater
+EOF
+
+# Build ReadWritePaths dynamically based on configuration
+READWRITE_PATHS="/var/lib/ddns-updater $BACKUP_DIR"
+
+# Add config directory or parent directory of config file
+if [ "$CONFIG_MODE" == "1" ]; then
+    # Single file mode - add parent directory
+    CONFIG_PARENT_DIR=$(dirname "$CONFIG_FILE")
+    READWRITE_PATHS="$READWRITE_PATHS $CONFIG_PARENT_DIR"
+else
+    # Directory mode - add the config directory
+    READWRITE_PATHS="$READWRITE_PATHS $CONFIG_DIR"
+fi
+
+# Remove duplicates and sort
+READWRITE_PATHS=$(echo "$READWRITE_PATHS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
+
+# Add ReadWritePaths to service file
+echo "ReadWritePaths=$READWRITE_PATHS" >> /etc/systemd/system/ddns-updater.service
+
+cat >> /etc/systemd/system/ddns-updater.service << EOF
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectKernelModules=true

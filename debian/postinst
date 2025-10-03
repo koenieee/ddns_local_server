@@ -20,12 +20,51 @@ case "$1" in
         # Set ownership and permissions
         # Storage directory for root (service runs as root to modify nginx configs)
         chown root:root /var/lib/ddns-updater
-        chown ddns-updater:ddns-updater /var/log/ddns-updater
+        chown ddns-updater:ddns-updater /var/log/ddns-updater  
         chown root:ddns-updater /etc/ddns-updater
         
         chmod 755 /var/lib/ddns-updater
         chmod 750 /var/log/ddns-updater
         chmod 750 /etc/ddns-updater
+        
+        # Handle common nginx configuration directories
+        # These might be Docker volumes or host-mounted directories
+        echo "Checking nginx configuration directories..."
+        
+        # Common nginx config locations
+        NGINX_DIRS=(
+            "/etc/nginx/sites-available"
+            "/etc/nginx/sites-enabled" 
+            "/etc/nginx/conf.d"
+            "/data/nginx/proxy_host"
+            "/app/data/nginx/proxy_host"
+            "/opt/nginx/conf.d"
+        )
+        
+        # Check and set permissions for existing nginx directories
+        for nginx_dir in "${NGINX_DIRS[@]}"; do
+            if [ -d "$nginx_dir" ]; then
+                echo "Found nginx directory: $nginx_dir"
+                # Add ddns-updater user to the group that owns the directory
+                if [ -w "$nginx_dir" ]; then
+                    echo "Directory $nginx_dir is writable by root"
+                    # Add ddns-updater to nginx group if it exists
+                    if getent group nginx >/dev/null 2>&1; then
+                        usermod -a -G nginx ddns-updater 2>/dev/null || true
+                        echo "Added ddns-updater user to nginx group"
+                    fi
+                    # Also add to www-data group if it exists (common in Docker)
+                    if getent group www-data >/dev/null 2>&1; then
+                        usermod -a -G www-data ddns-updater 2>/dev/null || true
+                        echo "Added ddns-updater user to www-data group"
+                    fi
+                else
+                    echo "Warning: Directory $nginx_dir is not writable by root"
+                    echo "This may be a read-only mounted volume in Docker"
+                    echo "Consider mounting with write permissions or using a writable volume"
+                fi
+            fi
+        done
         
         # Reload systemd daemon to recognize new services
         systemctl daemon-reload || true

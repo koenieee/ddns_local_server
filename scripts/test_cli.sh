@@ -32,7 +32,7 @@ run_test() {
     local output
     local actual_exit_code
     
-    output=$(eval "$command" 2>&1)
+    output=$(DDNS_TEST_MODE=1 eval "$command" 2>&1)
     actual_exit_code=$?
     
     if [ $actual_exit_code -eq $expected_exit_code ]; then
@@ -56,7 +56,7 @@ run_verbose_test() {
     echo "Output:"
     echo "-------"
     
-    if eval "$command"; then
+    if DDNS_TEST_MODE=1 eval "$command"; then
         actual_exit_code=0
     else
         actual_exit_code=$?
@@ -74,6 +74,9 @@ run_verbose_test() {
 # Build the project first
 echo -e "\n${YELLOW}Building project...${NC}"
 cargo build --quiet
+
+# Set test mode environment variable to use local storage
+export DDNS_TEST_MODE=1
 
 # Test 1: Help command
 run_test "Help command" "cargo run --quiet -- --help"

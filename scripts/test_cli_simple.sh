@@ -31,8 +31,8 @@ test_command() {
     echo -e "\n${BLUE}Test: $name${NC}"
     echo "Command: $cmd"
     
-    # Run command and capture exit code
-    bash -c "$cmd" >/dev/null 2>&1
+    # Run command with test mode environment variable and capture exit code
+    DDNS_TEST_MODE=1 bash -c "$cmd" >/dev/null 2>&1
     local actual_exit=$?
     
     if [ "$actual_exit" -eq "$expected_exit" ]; then
@@ -47,6 +47,9 @@ test_command() {
 # Build first
 echo -e "\n${YELLOW}Building project...${NC}"
 cargo build --quiet
+
+# Set test mode environment variable to use local storage
+export DDNS_TEST_MODE=1
 
 echo -e "\n${YELLOW}Running CLI tests...${NC}"
 
@@ -93,13 +96,13 @@ fi
 # Test 9: Verbose mode
 echo -e "\n${BLUE}Test: Verbose mode (with output)${NC}"
 if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
-    echo "Command: cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --host localhost --verbose --no-reload"
+    echo "Command: DDNS_TEST_MODE=1 cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --host localhost --verbose --no-reload"
     echo "Output:"
-    cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --host localhost --verbose --no-reload
+    DDNS_TEST_MODE=1 cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --host localhost --verbose --no-reload
 else
-    echo "Command: cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --verbose --no-reload"
+    echo "Command: DDNS_TEST_MODE=1 cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --verbose --no-reload"
     echo "Output:"
-    cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --verbose --no-reload
+    DDNS_TEST_MODE=1 cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --verbose --no-reload
 fi
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✓ PASS${NC}"
