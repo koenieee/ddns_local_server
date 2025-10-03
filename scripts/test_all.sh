@@ -137,7 +137,7 @@ echo "Testing with valid configurations:"
 for config in test_configs/valid/*.conf; do
     if [ -f "$config" ]; then
         echo "  - $(basename "$config")"
-        if cargo run --quiet -- --config "$config" --no-reload >/dev/null 2>&1; then
+        if DDNS_TEST_MODE=1 cargo run --quiet -- --config "$config" --no-reload >/dev/null 2>&1; then
             echo -e "    ${GREEN}✓ Valid${NC}"
         else
             echo -e "    ${RED}✗ Failed validation${NC}"
@@ -150,7 +150,7 @@ echo -e "\nTesting with invalid configurations:"
 for config in test_configs/invalid/*; do
     if [ -f "$config" ]; then
         echo "  - $(basename "$config")"
-        if cargo run --quiet -- --config "$config" --no-reload >/dev/null 2>&1; then
+        if DDNS_TEST_MODE=1 cargo run --quiet -- --config "$config" --no-reload >/dev/null 2>&1; then
             echo -e "    ${RED}✗ Should have failed${NC}"
             ((VALIDATION_ERRORS++))
         else
@@ -171,7 +171,7 @@ fi
 print_section "Performance Check"
 echo "Testing performance with multiple config files..."
 start_time=$(date +%s.%N)
-cargo run --quiet -- --config-dir test_configs/valid --no-reload >/dev/null 2>&1
+DDNS_TEST_MODE=1 cargo run --quiet -- --config-dir test_configs/valid --no-reload >/dev/null 2>&1
 end_time=$(date +%s.%N)
 duration=$(echo "$end_time - $start_time" | bc 2>/dev/null || echo "unknown")
 
