@@ -44,15 +44,12 @@ impl CliInterface {
             // Production: use /var/lib/ddns-updater
             PathBuf::from("/var/lib/ddns-updater")
         } else {
-            // Fallback: use /tmp/ddns-updater (writable system directory)
-            let fallback_dir = PathBuf::from("/tmp/ddns-updater");
-            if args.verbose {
-                println!(
-                    "Using fallback storage directory: {}",
-                    fallback_dir.display()
-                );
-            }
-            fallback_dir
+            // Cannot use /var/lib/ddns-updater - this is a configuration issue
+            eprintln!("ERROR: Cannot access /var/lib/ddns-updater for persistent storage.");
+            eprintln!("This directory must be created and writable by the service user.");
+            eprintln!("Please run: sudo mkdir -p /var/lib/ddns-updater && sudo chmod 755 /var/lib/ddns-updater");
+            eprintln!("Or install using the systemd installation script which creates this directory automatically.");
+            std::process::exit(1);
         };
 
         // Determine backup directory

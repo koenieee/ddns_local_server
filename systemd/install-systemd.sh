@@ -236,6 +236,12 @@ print_status "Creating backup directory: $BACKUP_DIR"
 mkdir -p "$BACKUP_DIR"
 chmod 755 "$BACKUP_DIR"
 
+# Create storage directory for JSON files
+print_status "Creating storage directory: /var/lib/ddns-updater"
+mkdir -p /var/lib/ddns-updater
+chmod 755 /var/lib/ddns-updater
+chown root:root /var/lib/ddns-updater
+
 # Install management scripts
 print_status "Installing management scripts..."
 mkdir -p /usr/share/ddns-updater
