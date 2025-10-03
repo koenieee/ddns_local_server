@@ -75,7 +75,10 @@ impl CliInterface {
                 eprintln!("Directory exists but is not writable by the current user.");
                 #[cfg(unix)]
                 if let Ok(metadata) = std::fs::metadata(ddns_dir) {
-                    eprintln!("Directory permissions: {:o}", metadata.permissions().mode() & 0o777);
+                    eprintln!(
+                        "Directory permissions: {:o}",
+                        metadata.permissions().mode() & 0o777
+                    );
                 }
             } else {
                 eprintln!("Directory does not exist.");
