@@ -30,9 +30,11 @@ pub trait IpRepository: Send + Sync {
     async fn initialize_host_file(
         &self,
         hostname: &str,
+        resolved_ip: IpAddr,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         // Default implementation does nothing - only FileIpRepository implements this
         let _ = hostname;
+        let _ = resolved_ip;
         Ok(false)
     }
 }

@@ -368,11 +368,18 @@ impl DdnsApplication {
     }
 
     /// Initialize DNS host file if it doesn't exist yet
-    /// This creates a placeholder JSON file for first-time setup
+    /// This resolves the hostname's IP and creates a JSON file with the real IP
     pub async fn initialize_host_file(
         &self,
         hostname: &str,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        self.ip_repository.initialize_host_file(hostname).await
+        // First resolve the hostname to get the current IP
+        let resolved_ips = self.network_service.resolve_hostname(hostname).await?;
+        let current_ip = resolved_ips
+            .first()
+            .ok_or_else(|| format!("Could not resolve hostname: {}", hostname))?;
+        
+        // Initialize the host file with the actual resolved IP
+        self.ip_repository.initialize_host_file(hostname, *current_ip).await
     }
 }

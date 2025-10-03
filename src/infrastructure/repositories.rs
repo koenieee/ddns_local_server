@@ -165,6 +165,7 @@ impl IpRepository for FileIpRepository {
     async fn initialize_host_file(
         &self,
         hostname: &str,
+        resolved_ip: IpAddr,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let file_path = self.get_file_path(hostname);
 
@@ -173,11 +174,11 @@ impl IpRepository for FileIpRepository {
             return Ok(false);
         }
 
-        // Create an initial entry with placeholder IP (will be updated on first run)
+        // Create an initial entry with the actual resolved IP
         let initial_entry = IpEntry::new(
-            "0.0.0.0".parse()?, // Placeholder IP - will be updated immediately
+            resolved_ip, // Use the real resolved IP instead of placeholder
             hostname.to_string(),
-            Some("Initial DNS host file created at first startup".to_string()),
+            Some("Initial DNS host file created at first startup with resolved IP".to_string()),
         );
 
         let json = serde_json::to_string_pretty(&initial_entry)?;
