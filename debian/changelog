@@ -1,3 +1,15 @@
+ddns-updater (1.2.3-1) unstable; urgency=medium
+
+  * Fix "Cannot access /var/lib/ddns-updater" installation error
+  * Improve directory writeability test to check actual target directory
+  * Fix Debian package permissions (755 instead of 750) for storage directory
+  * Change ownership to root:root for better systemd compatibility
+  * Add detailed error messages with Unix permission diagnostics
+  * Enhanced verbose logging for storage directory selection
+  * More reliable directory creation during package installation
+
+ -- DDNS Updater Team <dev@example.com>  Thu, 03 Oct 2025 13:00:00 +0000
+
 ddns-updater (1.2.2-1) unstable; urgency=medium
 
   * Enforce persistent storage in /var/lib/ddns-updater only
