@@ -102,7 +102,7 @@ rm -f /etc/systemd/system/ddns-backup-cleanup.timer
 # Remove binaries
 print_status "Removing binaries..."
 rm -f /usr/local/bin/ddns_updater
-rm -f /usr/local/bin/ddns-backup-cleanup
+rm -f /usr/bin/ddns-backup-cleanup
 
 # Ask about backup directory
 echo ""

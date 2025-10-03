@@ -376,22 +376,28 @@ impl DdnsApplication {
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         // Try to resolve the hostname to get the current IP
         let current_ip = match self.network_service.resolve_hostname(hostname).await {
-            Ok(resolved_ips) => {
-                match resolved_ips.first() {
-                    Some(ip) => *ip,
-                    None => {
-                        eprintln!("Warning: No IPs resolved for {}, using placeholder", hostname);
-                        "0.0.0.0".parse()?
-                    }
+            Ok(resolved_ips) => match resolved_ips.first() {
+                Some(ip) => *ip,
+                None => {
+                    eprintln!(
+                        "Warning: No IPs resolved for {}, using placeholder",
+                        hostname
+                    );
+                    "0.0.0.0".parse()?
                 }
-            }
+            },
             Err(e) => {
-                eprintln!("Warning: Failed to resolve {}: {}, using placeholder", hostname, e);
+                eprintln!(
+                    "Warning: Failed to resolve {}: {}, using placeholder",
+                    hostname, e
+                );
                 "0.0.0.0".parse()?
             }
         };
-        
+
         // Initialize the host file with the resolved IP (or placeholder if resolution failed)
-        self.ip_repository.initialize_host_file(hostname, current_ip).await
+        self.ip_repository
+            .initialize_host_file(hostname, current_ip)
+            .await
     }
 }

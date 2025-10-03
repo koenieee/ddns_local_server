@@ -176,11 +176,12 @@ impl IpRepository for FileIpRepository {
 
         // Create an initial entry with the resolved IP (or placeholder if resolution failed)
         let comment = if resolved_ip.to_string() == "0.0.0.0" {
-            "Initial DNS host file created at first startup (will be updated with real IP)".to_string()
+            "Initial DNS host file created at first startup (will be updated with real IP)"
+                .to_string()
         } else {
             "Initial DNS host file created at first startup with resolved IP".to_string()
         };
-        
+
         let initial_entry = IpEntry::new(
             resolved_ip, // Use the resolved IP (real or placeholder)
             hostname.to_string(),

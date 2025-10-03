@@ -97,7 +97,7 @@ systemctl status ddns-backup-cleanup.timer
 journalctl -u ddns-backup-cleanup.service -f
 
 # Manual cleanup (dry run)
-/usr/local/bin/ddns-backup-cleanup --dry-run --verbose
+/usr/bin/ddns-backup-cleanup --dry-run --verbose
 
 # Manual cleanup (actual)
 systemctl start ddns-backup-cleanup.service

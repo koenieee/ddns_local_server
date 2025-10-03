@@ -346,9 +346,9 @@ if [[ "$CLEANUP_ENABLED" == "true" ]]; then
     # Install cleanup script if in development mode
     if [ "$DEVELOPMENT_MODE" = true ]; then
         # Copy cleanup script from local directory
-        cp ddns-backup-cleanup.sh /usr/local/bin/ddns-backup-cleanup
-        chmod +x /usr/local/bin/ddns-backup-cleanup
-        CLEANUP_SCRIPT_PATH="/usr/local/bin/ddns-backup-cleanup"
+        cp ddns-backup-cleanup.sh /usr/bin/ddns-backup-cleanup
+        chmod +x /usr/bin/ddns-backup-cleanup
+        CLEANUP_SCRIPT_PATH="/usr/bin/ddns-backup-cleanup"
     elif [ -f "/usr/bin/ddns-backup-cleanup" ]; then
         # Use installed cleanup script
         CLEANUP_SCRIPT_PATH="/usr/bin/ddns-backup-cleanup"
@@ -374,7 +374,7 @@ Group=root
 
 # Clean up backup files older than $CLEANUP_DAYS days
 ExecStartPre=/bin/sh -c 'echo "DDNS Cleanup Configuration: Directory=\${DDNS_CLEANUP_BACKUP_DIR}, Retention=\${DDNS_CLEANUP_RETENTION_DAYS} days, Verbose=\${DDNS_CLEANUP_VERBOSE}"'
-ExecStart=/usr/local/bin/ddns-backup-cleanup --backup-dir "$BACKUP_DIR" --days $CLEANUP_DAYS --verbose
+ExecStart=/usr/bin/ddns-backup-cleanup --backup-dir "$BACKUP_DIR" --days $CLEANUP_DAYS --verbose
 Environment=DDNS_CLEANUP_BACKUP_DIR=$BACKUP_DIR
 Environment=DDNS_CLEANUP_RETENTION_DAYS=$CLEANUP_DAYS
 Environment=DDNS_CLEANUP_VERBOSE=true
@@ -487,7 +487,7 @@ echo "  Binary:          $BINARY_PATH"
 if [[ "$CLEANUP_ENABLED" == "true" ]]; then
 echo "  Cleanup Service: /etc/systemd/system/ddns-backup-cleanup.service"
 echo "  Cleanup Timer:   /etc/systemd/system/ddns-backup-cleanup.timer"
-echo "  Cleanup Script:  /usr/local/bin/ddns-backup-cleanup"
+echo "  Cleanup Script:  /usr/bin/ddns-backup-cleanup"
 fi
 echo ""
 echo "=== Management Commands ==="
@@ -505,7 +505,7 @@ echo "=== Backup Cleanup Commands ==="
 echo "  Check cleanup status:  systemctl status ddns-backup-cleanup.timer"
 echo "  View cleanup logs:     journalctl -u ddns-backup-cleanup.service -f"
 echo "  Manual cleanup:        systemctl start ddns-backup-cleanup.service"
-echo "  Test cleanup (dry-run): /usr/local/bin/ddns-backup-cleanup --backup-dir $BACKUP_DIR --days $CLEANUP_DAYS --dry-run --verbose"
+echo "  Test cleanup (dry-run): /usr/bin/ddns-backup-cleanup --backup-dir $BACKUP_DIR --days $CLEANUP_DAYS --dry-run --verbose"
 fi
 echo ""
 echo "The service will run every $INTERVAL and check for IP changes on $HOST."
