@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 use tokio::runtime::Runtime;
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 use crate::application::{AppConfig, DdnsApplication, MultiConfigResult};
 use crate::domain::services::UpdateResult;
 
@@ -23,14 +26,32 @@ impl CliInterface {
         args: crate::cli::Args,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // Create application configuration
-        // Check if we can actually write to /var/lib by testing directory creation
-        let can_use_var_lib = match std::fs::create_dir_all("/var/lib/ddns-updater-test") {
-            Ok(()) => {
-                // Clean up test directory
-                let _ = std::fs::remove_dir("/var/lib/ddns-updater-test");
-                true
+        // Check if we can actually use /var/lib/ddns-updater
+        let can_use_var_lib = {
+            let ddns_storage_dir = std::path::Path::new("/var/lib/ddns-updater");
+            if ddns_storage_dir.exists() {
+                // Directory exists, test if we can write to it
+                match std::fs::create_dir_all(ddns_storage_dir) {
+                    Ok(()) => {
+                        // Try to create a temporary test file to verify write access
+                        let test_file = ddns_storage_dir.join(".write_test");
+                        match std::fs::write(&test_file, "test") {
+                            Ok(()) => {
+                                let _ = std::fs::remove_file(&test_file);
+                                true
+                            }
+                            Err(_) => false,
+                        }
+                    }
+                    Err(_) => false,
+                }
+            } else {
+                // Directory doesn't exist, try to create it
+                match std::fs::create_dir_all(ddns_storage_dir) {
+                    Ok(()) => true,
+                    Err(_) => false,
+                }
             }
-            Err(_) => false,
         };
 
         let storage_dir = if std::env::var("DDNS_TEST_MODE").is_ok() {
@@ -42,10 +63,23 @@ impl CliInterface {
             local_dir
         } else if can_use_var_lib {
             // Production: use /var/lib/ddns-updater
+            if args.verbose {
+                println!("Using persistent storage directory: /var/lib/ddns-updater");
+            }
             PathBuf::from("/var/lib/ddns-updater")
         } else {
             // Cannot use /var/lib/ddns-updater - this is a configuration issue
             eprintln!("ERROR: Cannot access /var/lib/ddns-updater for persistent storage.");
+            let ddns_dir = std::path::Path::new("/var/lib/ddns-updater");
+            if ddns_dir.exists() {
+                eprintln!("Directory exists but is not writable by the current user.");
+                #[cfg(unix)]
+                if let Ok(metadata) = std::fs::metadata(ddns_dir) {
+                    eprintln!("Directory permissions: {:o}", metadata.permissions().mode() & 0o777);
+                }
+            } else {
+                eprintln!("Directory does not exist.");
+            }
             eprintln!("This directory must be created and writable by the service user.");
             eprintln!("Please run: sudo mkdir -p /var/lib/ddns-updater && sudo chmod 755 /var/lib/ddns-updater");
             eprintln!("Or install using the systemd installation script which creates this directory automatically.");

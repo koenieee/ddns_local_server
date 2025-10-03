@@ -19,11 +19,11 @@ case "$1" in
         
         # Set ownership and permissions
         # Storage directory for root (service runs as root to modify nginx configs)
-        chown root:ddns-updater /var/lib/ddns-updater
+        chown root:root /var/lib/ddns-updater
         chown ddns-updater:ddns-updater /var/log/ddns-updater
         chown root:ddns-updater /etc/ddns-updater
         
-        chmod 750 /var/lib/ddns-updater
+        chmod 755 /var/lib/ddns-updater
         chmod 750 /var/log/ddns-updater
         chmod 750 /etc/ddns-updater
         
