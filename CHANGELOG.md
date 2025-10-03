@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2025-10-03
+
+### Fixed
+- **Critical Storage Directory Issue**: Resolved "Read-only file system" error in systemd service
+  - Fixed storage directory logic to use proper system directories
+  - Updated systemd service ReadWritePaths configuration
+  - Corrected directory ownership in Debian package installation
+  - Added fallback to /tmp/ddns-updater when /var/lib unavailable
+
+### Added
+- **Storage Permission Fix Script**: `scripts/fix-storage-permissions.sh`
+  - Automated repair tool for existing installations
+  - Comprehensive directory setup and permission fixing
+  - Troubleshooting guide for common issues
+
+### Improved
+- **System Integration**: Better systemd service directory handling
+- **Error Handling**: Clearer fallback logic for storage directories
+- **Installation Process**: More robust Debian package post-installation
+
 ## [1.1.1] - 2025-10-02
 
 ### Added
