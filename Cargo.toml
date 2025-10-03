@@ -1,6 +1,6 @@
 [package]
 name = "ddns_updater"
-version = "1.1.4"
+version = "1.1.5"
 edition = "2021"  # Use 2021 edition for better compatibility
 default-run = "ddns_updater"
 rust-version = "1.82"  # Specify minimum Rust version for Debian 12
