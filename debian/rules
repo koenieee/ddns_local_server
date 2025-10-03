@@ -9,9 +9,12 @@ override_dh_auto_build:
 	@if [ "$(USE_CROSS)" = "true" ]; then \
 		echo "Using cross-compilation..."; \
 		cross build --release --target $(CARGO_TARGET); \
+	elif [ -n "$(CARGO_TARGET)" ]; then \
+		echo "Using native compilation with target..."; \
+		cargo build --release --target $(CARGO_TARGET); \
 	else \
 		echo "Using native compilation..."; \
-		cargo build --release --target $(CARGO_TARGET); \
+		cargo build --release; \
 	fi
 
 override_dh_strip:
@@ -41,13 +44,17 @@ override_dh_shlibdeps:
 
 override_dh_auto_install:
 	# Install the main binary (use correct path for cross-compilation)
-	@BINARY_PATH="target/$(CARGO_TARGET)/release/ddns_updater"; \
+	@if [ -n "$(CARGO_TARGET)" ]; then \
+		BINARY_PATH="target/$(CARGO_TARGET)/release/ddns_updater"; \
+	else \
+		BINARY_PATH="target/release/ddns_updater"; \
+	fi; \
 	if [ -f "$$BINARY_PATH" ]; then \
 		echo "Installing binary from $$BINARY_PATH"; \
 		install -D -m 755 "$$BINARY_PATH" debian/ddns-updater/usr/bin/ddns-updater; \
 	else \
-		echo "Binary not found at $$BINARY_PATH, trying default path..."; \
-		install -D -m 755 target/release/ddns_updater debian/ddns-updater/usr/bin/ddns-updater; \
+		echo "Binary not found at $$BINARY_PATH"; \
+		exit 1; \
 	fi
 	
 	# Install systemd service files

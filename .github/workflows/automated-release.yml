@@ -84,6 +84,24 @@ jobs:
           cd releases
           sha256sum * > SHA256SUMS
           ls -la
+
+      - name: Build Debian Package
+        run: |
+          # Install Debian package building tools
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev debhelper dh-make fakeroot
+          
+          # Build the Debian package using our existing build script
+          chmod +x build-deb.sh
+          ./build-deb.sh
+          
+          # Copy the .deb file to releases directory
+          find . -name "*.deb" -exec cp {} releases/ \;
+          
+          # Update checksums to include .deb file
+          cd releases
+          sha256sum *.deb >> SHA256SUMS
+          ls -la
       
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -94,6 +112,16 @@ jobs:
             ${{ steps.changelog.outputs.changelog }}
             
             ## 📦 Installation
+            
+            ### Debian Package Installation (Recommended)
+            ```bash
+            # Download and install the .deb package
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/ddns-updater_${{ steps.version.outputs.version_name }}_amd64.deb
+            sudo dpkg -i ddns-updater_${{ steps.version.outputs.version_name }}_amd64.deb
+            
+            # Fix any dependency issues if needed
+            sudo apt-get install -f
+            ```
             
             ### Binary Installation
             ```bash

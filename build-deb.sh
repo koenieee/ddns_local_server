@@ -78,9 +78,9 @@ rm -rf ../ddns-updater_* || true
 print_status "Building Rust binary..."
 
 # Support cross-compilation if environment variables are set
-CARGO_TARGET=${CARGO_TARGET:-"x86_64-unknown-linux-gnu"}
-USE_CROSS=${USE_CROSS:-"false"}
-DEB_HOST_ARCH=${DEB_HOST_ARCH:-"amd64"}
+export CARGO_TARGET=${CARGO_TARGET:-"x86_64-unknown-linux-gnu"}
+export USE_CROSS=${USE_CROSS:-"false"}
+export DEB_HOST_ARCH=${DEB_HOST_ARCH:-"amd64"}
 
 print_status "Build Configuration:"
 print_status "  CARGO_TARGET: $CARGO_TARGET"
