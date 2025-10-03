@@ -55,6 +55,12 @@ pub trait WebServerHandler: Send + Sync {
         config: &WebServerConfig,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
 
+    async fn check_ip_in_config(
+        &self,
+        config: &WebServerConfig,
+        ip: IpAddr,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
+
     fn server_type(&self) -> crate::domain::entities::WebServerType;
 }
 

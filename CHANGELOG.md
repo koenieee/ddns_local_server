@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-10-03
+
+### Added
+- **Smart JSON Storage**: Automatic creation of IP tracking files when none exist
+  - Creates JSON files with hostname, IP, and timestamps automatically
+  - Prevents duplicate work by storing resolved IP addresses
+- **Intelligent Config Checking**: Pre-update verification of IP presence in config files
+  - Checks if current IP already exists in nginx/apache configurations
+  - Avoids unnecessary updates when IP is already correctly configured
+- **Non-Intrusive Behavior**: Enhanced update logic for better reliability
+  - Only updates existing allow/deny entries, never adds new ones automatically
+  - Provides clear feedback when no changes are needed
+- **Enhanced Apache Support**: Extended IP checking for Apache configurations
+  - Supports both "Allow from" and "Require ip" directive formats
+  - Consistent behavior between nginx and Apache handlers
+
+### Changed
+- **Update Logic**: Improved decision-making process for config updates
+  - Better handling of first-run scenarios without existing JSON files
+  - More granular control over when configuration changes occur
+- **Debug Logging**: Enhanced debugging output for troubleshooting
+  - Clearer messages about JSON file creation and IP checking
+  - Better visibility into decision-making process
+
 ## [1.1.9] - 2025-01-03
 
 ### Fixed

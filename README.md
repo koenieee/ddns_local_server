@@ -10,6 +10,9 @@ A Rust-based Dynamic DNS (DDNS) updater that automatically manages nginx allow l
 ## Features
 
 - **Automatic IP Detection**: Monitors your public IP address changes
+- **Smart JSON Storage**: Automatically creates and manages IP tracking files
+- **Intelligent Config Checking**: Verifies IP presence before making changes
+- **Non-Intrusive Updates**: Only updates existing entries, never adds new ones
 - **Multiple Config Support**: Process single files or entire directories
 - **Smart Cleanup**: Removes old duplicate IP entries for the same host
 - **Nginx Integration**: Automatically validates and reloads nginx configurations

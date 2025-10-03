@@ -70,11 +70,40 @@ impl DdnsUpdateService {
         let stored_ip = self.ip_repository.load_ip(hostname).await?;
         eprintln!("DEBUG: Stored IP: {:?}", stored_ip);
 
-        // Check if IP has changed
-        if let Some(old_ip) = stored_ip {
-            if old_ip == current_ip {
-                eprintln!("DEBUG: IP unchanged, returning NoChange");
+        // If no JSON file exists, create it with current IP and check config
+        if stored_ip.is_none() {
+            eprintln!("DEBUG: No stored IP found, creating JSON file and checking config");
+
+            // Store the current IP in JSON file
+            self.ip_repository.store_ip(hostname, current_ip).await?;
+            eprintln!("DEBUG: Created new JSON file with IP: {}", current_ip);
+
+            // Check if the current IP is already in the config file
+            let ip_in_config = self
+                .web_server_handler
+                .check_ip_in_config(config, current_ip)
+                .await?;
+
+            if ip_in_config {
+                eprintln!(
+                    "DEBUG: IP {} already exists in config, no update needed",
+                    current_ip
+                );
                 return Ok(UpdateResult::NoChange { ip: current_ip });
+            } else {
+                eprintln!(
+                    "DEBUG: IP {} not found in config, but not adding new entries",
+                    current_ip
+                );
+                return Ok(UpdateResult::NoChange { ip: current_ip });
+            }
+        } else {
+            // Check if IP has changed
+            if let Some(old_ip) = stored_ip {
+                if old_ip == current_ip {
+                    eprintln!("DEBUG: IP unchanged, returning NoChange");
+                    return Ok(UpdateResult::NoChange { ip: current_ip });
+                }
             }
         }
 

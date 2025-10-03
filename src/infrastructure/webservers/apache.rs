@@ -166,6 +166,33 @@ impl WebServerHandler for ApacheHandler {
         self.validate_config(config).await
     }
 
+    async fn check_ip_in_config(
+        &self,
+        config: &WebServerConfig,
+        ip: IpAddr,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let content = fs::read_to_string(&config.path).await?;
+        let ip_str = ip.to_string();
+
+        // Check if the IP exists in any Allow directive (Apache format)
+        for line in content.lines() {
+            let trimmed = line.trim();
+            // Apache uses "Allow from" or "Require ip" directives
+            if (trimmed.starts_with("Allow from ") || trimmed.starts_with("Require ip "))
+                && trimmed.contains(&ip_str)
+            {
+                eprintln!(
+                    "DEBUG: Found IP {} in Apache config line: {}",
+                    ip_str, trimmed
+                );
+                return Ok(true);
+            }
+        }
+
+        eprintln!("DEBUG: IP {} not found in Apache config file", ip_str);
+        Ok(false)
+    }
+
     fn server_type(&self) -> WebServerType {
         WebServerType::Apache
     }

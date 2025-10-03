@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 use tokio::fs;
 
-use crate::domain::entities::{WebServerConfig, WebServerType};
+use crate::domain::entities::WebServerConfig;
 use crate::domain::ports::WebServerHandler;
 
 /// Nginx web server handler
@@ -116,9 +116,6 @@ impl NginxHandler {
                 }
             }
         }
-
-        // Important: Do NOT add new entries if none existed before
-        // This ensures we only update existing entries
 
         if updated {
             let new_content = lines.join("\n");
@@ -242,8 +239,29 @@ impl WebServerHandler for NginxHandler {
         self.validate_config(config).await
     }
 
-    fn server_type(&self) -> WebServerType {
-        WebServerType::Nginx
+    async fn check_ip_in_config(
+        &self,
+        config: &WebServerConfig,
+        ip: IpAddr,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let content = fs::read_to_string(&config.path).await?;
+        let ip_str = ip.to_string();
+
+        // Check if the IP exists in any allow directive
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with("allow ") && trimmed.contains(&ip_str) {
+                eprintln!("DEBUG: Found IP {} in config line: {}", ip_str, trimmed);
+                return Ok(true);
+            }
+        }
+
+        eprintln!("DEBUG: IP {} not found in config file", ip_str);
+        Ok(false)
+    }
+
+    fn server_type(&self) -> crate::domain::entities::WebServerType {
+        crate::domain::entities::WebServerType::Nginx
     }
 }
 
