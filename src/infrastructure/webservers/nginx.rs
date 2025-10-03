@@ -203,26 +203,64 @@ impl WebServerHandler for NginxHandler {
     }
 
     async fn reload_server(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        match Command::new("systemctl")
-            .arg("reload")
-            .arg("nginx")
-            .output()
-        {
-            Ok(output) => {
-                if !output.status.success() {
-                    let error = String::from_utf8_lossy(&output.stderr);
-                    // Log the warning but don't fail in test environments
-                    eprintln!("Warning: Failed to reload nginx: {}", error);
-                    // In a test environment or when nginx isn't running, don't fail
-                    // This allows tests to pass without requiring nginx to be installed
+        // In test mode, skip actual reload
+        if std::env::var("DDNS_TEST_MODE").is_ok() {
+            eprintln!("Test mode: Skipping nginx reload");
+            return Ok(());
+        }
+
+        eprintln!("Reloading nginx configuration...");
+
+        // Try multiple methods to reload nginx, starting with the most direct
+        let reload_methods = [
+            // Method 1: Direct nginx reload signal with full path (most reliable)
+            ("/usr/sbin/nginx", vec!["-s", "reload"]),
+            // Method 2: nginx in PATH (fallback)
+            ("nginx", vec!["-s", "reload"]),
+            // Method 3: systemctl reload (for systemd managed nginx)
+            ("systemctl", vec!["reload", "nginx"]),
+            // Method 4: service command (for SysV init)
+            ("service", vec!["nginx", "reload"]),
+        ];
+
+        let mut last_error = String::new();
+        let mut attempts = 0;
+
+        for (command, args) in &reload_methods {
+            attempts += 1;
+            eprintln!("Attempt {}: Trying {} {}", attempts, command, args.join(" "));
+            
+            match Command::new(command).args(args).output() {
+                Ok(output) => {
+                    if output.status.success() {
+                        eprintln!("✅ Nginx reloaded successfully using: {} {}", command, args.join(" "));
+                        return Ok(());
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        let stdout = String::from_utf8_lossy(&output.stdout);
+                        last_error = format!(
+                            "Command '{}' failed with exit code {}: stderr: '{}', stdout: '{}'",
+                            format!("{} {}", command, args.join(" ")),
+                            output.status.code().unwrap_or(-1),
+                            stderr.trim(),
+                            stdout.trim()
+                        );
+                        eprintln!("⚠️  {}", last_error);
+                    }
+                }
+                Err(e) => {
+                    last_error = format!("Could not execute '{}': {}", command, e);
+                    eprintln!("⚠️  {}", last_error);
                 }
             }
-            Err(e) => {
-                // systemctl command not found or failed to execute
-                eprintln!("Warning: Could not execute systemctl command: {}", e);
-            }
         }
-        Ok(())
+
+        // All methods failed - return comprehensive error
+        Err(format!(
+            "❌ Failed to reload nginx after {} attempts. Last error: {}. This may indicate nginx is not installed, not running, or permission issues.",
+            attempts,
+            last_error
+        ).into())
     }
 
     async fn create_backup(
