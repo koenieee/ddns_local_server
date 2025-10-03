@@ -10,15 +10,38 @@ case "$1" in
             deluser --system ddns-updater 2>/dev/null || true
         fi
         
-        # Remove configuration and data directories on purge
+        # Remove all configuration and data directories on purge
         rm -rf /etc/ddns-updater
         rm -rf /var/lib/ddns-updater
         rm -rf /var/log/ddns-updater
+        rm -rf /var/backups/ddns-updater
+        rm -rf /usr/share/ddns-updater
+        rm -rf /usr/share/doc/ddns-updater
         
-        echo "DDNS Updater configuration and data have been completely removed."
+        # Remove any leftover backup files in common locations
+        find /tmp -name "*ddns*" -type d -exec rm -rf {} + 2>/dev/null || true
+        find /tmp -name "*ddns*.bak*" -type f -delete 2>/dev/null || true
+        
+        echo "DDNS Updater configuration, data, and all system files have been completely removed."
         ;;
         
-    remove|upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
+    remove)
+        # On remove (but not purge), only remove runtime data, keep configs
+        rm -rf /var/lib/ddns-updater
+        rm -rf /var/log/ddns-updater
+        rm -rf /var/backups/ddns-updater
+        
+        # Remove temporary files
+        find /tmp -name "*ddns*" -type d -exec rm -rf {} + 2>/dev/null || true
+        find /tmp -name "*ddns*.bak*" -type f -delete 2>/dev/null || true
+        
+        # Reload systemd daemon after service files are removed
+        systemctl daemon-reload || true
+        
+        echo "DDNS Updater has been removed. Configuration files preserved in /etc/ddns-updater"
+        ;;
+        
+    upgrade|failed-upgrade|abort-install|abort-upgrade|disappear)
         # Reload systemd daemon after service files are removed
         systemctl daemon-reload || true
         ;;

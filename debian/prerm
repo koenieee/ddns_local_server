@@ -5,18 +5,38 @@ set -e
 
 case "$1" in
     remove|upgrade|deconfigure)
-        # Stop and disable services if they're running
+        echo "Stopping DDNS Updater services..."
+        
+        # Stop and disable all services if they're running
         systemctl stop ddns-updater.target 2>/dev/null || true
         systemctl stop ddns-updater.service 2>/dev/null || true
         systemctl stop ddns-updater.timer 2>/dev/null || true
         systemctl stop ddns-backup-cleanup.service 2>/dev/null || true
         systemctl stop ddns-backup-cleanup.timer 2>/dev/null || true
         
+        # Stop any instance services
+        systemctl stop 'ddns-updater@*.service' 2>/dev/null || true
+        systemctl stop 'ddns-updater@*.timer' 2>/dev/null || true
+        
         systemctl disable ddns-updater.target 2>/dev/null || true
         systemctl disable ddns-updater.service 2>/dev/null || true
         systemctl disable ddns-updater.timer 2>/dev/null || true
         systemctl disable ddns-backup-cleanup.service 2>/dev/null || true
         systemctl disable ddns-backup-cleanup.timer 2>/dev/null || true
+        
+        # Disable any instance services
+        for service in $(systemctl list-units 'ddns-updater@*.service' --no-legend | awk '{print $1}'); do
+            systemctl disable "$service" 2>/dev/null || true
+        done
+        for timer in $(systemctl list-units 'ddns-updater@*.timer' --no-legend | awk '{print $1}'); do
+            systemctl disable "$timer" 2>/dev/null || true
+        done
+        
+        # Kill any remaining processes
+        pkill -f ddns_updater 2>/dev/null || true
+        pkill -f ddns-backup-cleanup 2>/dev/null || true
+        
+        echo "DDNS Updater services stopped and disabled."
         ;;
         
     failed-upgrade)

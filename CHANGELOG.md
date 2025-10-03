@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-10-03
+
+### Changed
+- **Efficient Backup Creation**: Backups are now only created when IP actually changes
+  - Prevents unnecessary backup files when no configuration changes occur
+  - Reduces disk usage and improves performance for repeated runs
+- **Enhanced Package Removal**: Comprehensive cleanup on package removal/purge
+  - Removes all system files, directories, and temporary files
+  - Properly stops and disables all systemd services including instance services
+  - Thorough cleanup of backup files and runtime data
+
+### Fixed
+- Backup files no longer created for no-change scenarios
+- Package removal now cleans up all traces of the application
+
 ## [1.2.0] - 2025-10-03
 
 ### Added

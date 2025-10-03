@@ -107,7 +107,10 @@ impl DdnsUpdateService {
             }
         }
 
-        // Create backup before modification
+        // Only proceed with backup and update if we have an IP change
+        eprintln!("DEBUG: IP has changed, proceeding with backup and update");
+        
+        // Create backup before modification (only when IP changes)
         let backup_path = self.web_server_handler.create_backup(config).await?;
 
         // Update the web server configuration
