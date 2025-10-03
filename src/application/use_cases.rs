@@ -190,7 +190,7 @@ impl DdnsApplication {
         result
     }
 
-    /// Update DDNS for multiple configuration files - optimized to check IP first
+    /// Update DDNS for multiple configuration files with consistent IP storage
     pub async fn update_ddns_multiple(
         &self,
         hostname: &str,
@@ -245,7 +245,7 @@ impl DdnsApplication {
             }
         }
 
-        // IP has changed (or no stored IP), process only configs that need actual updates
+        // IP has changed (or no stored IP), process all configs that need actual updates
         if self.config.verbose {
             println!(
                 "🔄 IP change detected, processing {} config files",
@@ -253,9 +253,19 @@ impl DdnsApplication {
             );
         }
 
+        // Process all config files without storing IP yet
+        let mut any_updated = false;
         for config_path in config_paths {
-            match self.update_ddns(hostname, config_path.clone()).await {
-                Ok(result) => successes.push(result),
+            match self
+                .update_ddns_file_only(hostname, config_path.clone(), stored_ip, current_ip)
+                .await
+            {
+                Ok(result) => {
+                    if matches!(result, UpdateResult::Updated { .. }) {
+                        any_updated = true;
+                    }
+                    successes.push(result);
+                }
                 Err(e) => {
                     let error_msg = e.to_string();
                     errors.push((config_path, error_msg));
@@ -263,7 +273,67 @@ impl DdnsApplication {
             }
         }
 
+        // Only store the new IP and send notification if at least one file was actually updated
+        if any_updated {
+            if let Err(e) = self.ip_repository.store_ip(hostname, current_ip).await {
+                // If we can't store the IP, treat it as an error but don't fail the whole operation
+                eprintln!(
+                    "Warning: Failed to store IP after successful updates: {}",
+                    e
+                );
+            }
+
+            // Send notification for the IP change (once for all files)
+            if let Err(e) = self
+                .notification_service
+                .notify_ip_change(hostname, stored_ip, current_ip)
+                .await
+            {
+                eprintln!("Warning: Failed to send notification: {}", e);
+            }
+        }
+
         Ok(MultiConfigResult { successes, errors })
+    }
+
+    /// Update DDNS for a specific config file without storing IP (used by multi-config processing)
+    async fn update_ddns_file_only(
+        &self,
+        hostname: &str,
+        config_path: std::path::PathBuf,
+        stored_ip: Option<std::net::IpAddr>,
+        current_ip: std::net::IpAddr,
+    ) -> Result<UpdateResult, Box<dyn std::error::Error + Send + Sync>> {
+        // Detect server type
+        let server_type = self
+            .config_discovery
+            .detect_server_type(&config_path)
+            .await?;
+
+        let config = WebServerConfig::new(config_path, server_type.clone());
+
+        // Create appropriate web server handler
+        let web_server_handler =
+            ServiceFactory::create_web_server_handler(server_type, self.config.backup_dir.clone());
+
+        // Create the service but use it directly without storing IP
+        let service = DdnsUpdateService::new(
+            self.ip_repository.clone(),
+            web_server_handler,
+            self.network_service.clone(),
+            self.notification_service.clone(),
+        );
+
+        // Process this specific file without storing IP
+        service
+            .update_file_only(
+                &config,
+                hostname,
+                stored_ip,
+                current_ip,
+                self.config.no_reload,
+            )
+            .await
     }
 
     /// Discover configuration files using pattern

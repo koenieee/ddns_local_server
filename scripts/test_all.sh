@@ -185,6 +185,97 @@ else
     echo -e "${YELLOW}⚠ bc not found, skipping precise timing${NC}"
 fi
 
+# Batch processing test with github.com
+print_section "Batch Processing Test"
+echo "Testing batch update functionality with github.com hostname..."
+
+# Create temporary test directory and config files
+BATCH_TEST_DIR="test_batch_github"
+BATCH_STORAGE_DIR="test_storage_github"
+BATCH_ERRORS=0
+
+mkdir -p "$BATCH_TEST_DIR" "$BATCH_STORAGE_DIR"
+
+# Create test config files with old IP
+OLD_IP="192.168.1.100"  # Use a different IP that github.com won't resolve to
+NEW_IP="140.82.121.3"   # github.com resolves to this single IP
+HOSTNAME="github.com"
+
+echo "Testing batch processing with OLD_IP: ${OLD_IP} → NEW_IP: ${NEW_IP}"
+
+for i in {1..3}; do
+    cat > "$BATCH_TEST_DIR/config${i}.conf" << EOF
+server {
+    listen 80;
+    server_name test${i}.example.com;
+    
+    location / {
+        allow ${OLD_IP};
+        deny all;
+        proxy_pass http://backend;
+    }
+}
+EOF
+done
+
+# Create IP storage file with old IP
+cat > "$BATCH_STORAGE_DIR/${HOSTNAME}.json" << EOF
+{
+  "ip": "${OLD_IP}",
+  "hostname": "${HOSTNAME}",
+  "comment": null,
+  "created_at": "2025-10-03T12:00:00Z",
+  "updated_at": "2025-10-03T12:00:00Z"
+}
+EOF
+
+echo "Created test files with old IP: ${OLD_IP}"
+
+# Run batch update test
+echo "Running batch update test..."
+if DDNS_TEST_MODE=1 DDNS_STORAGE_DIR="$BATCH_STORAGE_DIR" DDNS_BACKUP_DIR="$BATCH_TEST_DIR/backups" \
+   cargo run --quiet -- --host "$HOSTNAME" --config-dir "$BATCH_TEST_DIR" --pattern "*.conf" --no-reload >/dev/null 2>&1; then
+    
+    # Verify all config files were updated
+    UPDATED_COUNT=0
+    for i in {1..3}; do
+        if grep -q "allow ${NEW_IP}" "$BATCH_TEST_DIR/config${i}.conf" 2>/dev/null; then
+            ((UPDATED_COUNT++))
+        else
+            echo -e "    ${RED}✗ config${i}.conf was not updated${NC}"
+            ((BATCH_ERRORS++))
+        fi
+    done
+    
+    # Verify stored IP was updated
+    if grep -q "\"ip\": \"${NEW_IP}\"" "$BATCH_STORAGE_DIR/${HOSTNAME}.json" 2>/dev/null; then
+        echo -e "    ${GREEN}✓ Stored IP updated correctly${NC}"
+    else
+        echo -e "    ${RED}✗ Stored IP was not updated${NC}"
+        ((BATCH_ERRORS++))
+    fi
+    
+    if [ $UPDATED_COUNT -eq 3 ] && [ $BATCH_ERRORS -eq 0 ]; then
+        echo -e "${GREEN}✓ Batch processing test passed - all 3 config files updated${NC}"
+    else
+        echo -e "${RED}❌ Batch processing test failed - only ${UPDATED_COUNT}/3 files updated${NC}"
+        ((BATCH_ERRORS++))
+    fi
+else
+    echo -e "${RED}❌ Batch processing command failed${NC}"
+    ((BATCH_ERRORS++))
+fi
+
+# Cleanup batch test files
+rm -rf "$BATCH_TEST_DIR" "$BATCH_STORAGE_DIR"
+
+if [ $BATCH_ERRORS -gt 0 ]; then
+    echo -e "${RED}❌ Batch processing test failed with $BATCH_ERRORS error(s)${NC}"
+    exit 1
+else
+    echo -e "${GREEN}✓ Batch processing test completed successfully${NC}"
+fi
+
 # Final summary
 print_section "Test Summary"
 echo -e "${GREEN}🎉 All tests completed successfully!${NC}"
@@ -236,6 +327,7 @@ echo "  ✓ CLI interface works correctly"
 echo "  ✓ Configuration validation works"
 echo "  ✓ Error handling works as expected"
 echo "  ✓ Performance is acceptable"
+echo "  ✓ Batch processing with multiple config files"
 echo "  ✓ Test artifacts cleaned up"
 echo ""
 echo -e "${GREEN}Your DDNS updater is ready for production use! 🚀${NC}"

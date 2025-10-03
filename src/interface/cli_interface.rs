@@ -55,8 +55,12 @@ impl CliInterface {
         };
 
         let storage_dir = if std::env::var("DDNS_TEST_MODE").is_ok() {
-            // Use local directory for tests only
-            let local_dir = PathBuf::from("./test_storage");
+            // Use environment variable or local directory for tests
+            let local_dir = if let Ok(test_storage_dir) = std::env::var("DDNS_STORAGE_DIR") {
+                PathBuf::from(test_storage_dir)
+            } else {
+                PathBuf::from("./test_storage")
+            };
             if args.verbose {
                 println!("Using test storage directory: {}", local_dir.display());
             }

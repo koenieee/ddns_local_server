@@ -225,6 +225,92 @@ impl DdnsUpdateService {
 
         Ok(results)
     }
+
+    /// Update a single config file without storing IP (used by multi-config processing)
+    pub async fn update_file_only(
+        &self,
+        config: &WebServerConfig,
+        hostname: &str,
+        stored_ip: Option<std::net::IpAddr>,
+        current_ip: std::net::IpAddr,
+        no_reload: bool,
+    ) -> Result<UpdateResult, Box<dyn std::error::Error + Send + Sync>> {
+        // Validate the configuration file
+        let is_valid = self.web_server_handler.validate_config(config).await?;
+        if !is_valid {
+            return Err("Invalid web server configuration".into());
+        }
+
+        // If no stored IP, don't update anything (this should have been handled at a higher level)
+        let stored_ip = match stored_ip {
+            Some(ip) => ip,
+            None => {
+                // Check if current IP is already in config
+                let ip_in_config = self
+                    .web_server_handler
+                    .check_ip_in_config(config, current_ip)
+                    .await?;
+                if ip_in_config {
+                    return Ok(UpdateResult::NoChange { ip: current_ip });
+                } else {
+                    // No stored IP and current IP not in config - this is a new setup
+                    // but we don't add new entries in batch mode
+                    return Ok(UpdateResult::NoChange { ip: current_ip });
+                }
+            }
+        };
+
+        // If IP hasn't changed, no update needed
+        if stored_ip == current_ip {
+            return Ok(UpdateResult::NoChange { ip: current_ip });
+        }
+
+        // Check if this specific config file actually needs updating
+        // by checking if the old IP exists in this file
+        let needs_update = self
+            .web_server_handler
+            .check_ip_in_config(config, stored_ip)
+            .await?;
+
+        if !needs_update {
+            return Ok(UpdateResult::NoChange { ip: current_ip });
+        }
+
+        // Create backup only when we're actually going to modify the file
+        let backup_path = self.web_server_handler.create_backup(config).await?;
+
+        // Update the web server configuration
+        let updated = self
+            .web_server_handler
+            .update_allow_list(config, hostname, Some(stored_ip), current_ip)
+            .await?;
+
+        if updated {
+            // Test the new configuration
+            if !self.web_server_handler.test_configuration(config).await? {
+                return Err("Configuration test failed after update".into());
+            }
+
+            // Reload the web server (unless --no-reload is specified)
+            // Note: In batch mode, we might want to reload only once at the end
+            // but for now, we'll reload for each file to maintain consistency
+            if !no_reload {
+                self.web_server_handler.reload_server().await?;
+            }
+
+            // Note: We don't store IP here - that's handled by the calling function
+            // Note: We don't send notification here either - that should be done once for all files
+
+            Ok(UpdateResult::Updated {
+                hostname: hostname.to_string(),
+                old_ip: Some(stored_ip),
+                new_ip: current_ip,
+                backup_path,
+            })
+        } else {
+            Ok(UpdateResult::NoChange { ip: current_ip })
+        }
+    }
 }
 
 /// Result of a DDNS update operation
