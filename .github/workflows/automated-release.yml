@@ -96,11 +96,23 @@ jobs:
           ./build-deb.sh
           
           # Copy the .deb file to releases directory
-          find . -name "*.deb" -exec cp {} releases/ \;
+          # The build script creates .deb files in the parent directory
+          DEB_FILES=$(find .. -maxdepth 1 -name "*.deb" 2>/dev/null || true)
+          if [ -n "$DEB_FILES" ]; then
+            echo "Found .deb files: $DEB_FILES"
+            cp ../*.deb releases/ 2>/dev/null || echo "Failed to copy .deb files"
+            
+            # Update checksums to include .deb file
+            cd releases
+            if ls *.deb 1> /dev/null 2>&1; then
+              sha256sum *.deb >> SHA256SUMS
+              echo "Added .deb checksums to SHA256SUMS"
+            fi
+          else
+            echo "No .deb files found - skipping Debian package"
+          fi
           
-          # Update checksums to include .deb file
           cd releases
-          sha256sum *.deb >> SHA256SUMS
           ls -la
       
       - name: Create GitHub Release
