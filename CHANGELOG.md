@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.5] - 2025-10-03
+
+### Fixed
+- **Debian Package Installation**: Fixed postinst script syntax error during package installation
+  - Corrected shebang position to be the first line in debian/postinst script
+  - Fixed "Syntax error: '(' unexpected (expecting ';')" during dpkg install
+  - Set proper executable permissions on postinst script
+- **Test Suite CI/CD Compatibility**: Fixed configuration validation tests for containerized environments
+  - Added DDNS_TEST_MODE environment variable to all validation tests
+  - Prevents "Cannot access /var/lib/ddns-updater" errors in CI/CD pipelines
+  - Uses test storage directory instead of system directories during testing
+
+### Enhanced
+- **Package Reliability**: Improved Debian package installation process
+- **Testing Infrastructure**: Better CI/CD and Docker container compatibility for test suites
+
 ## [1.2.4] - 2025-01-03
 
 ### Added

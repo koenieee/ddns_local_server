@@ -1,3 +1,15 @@
+ddns-updater (1.2.5-1) unstable; urgency=medium
+
+  * Fix postinst script syntax error during package installation
+  * Correct shebang position to be the first line in debian/postinst script
+  * Fix "Syntax error: '(' unexpected" during dpkg install
+  * Set proper executable permissions on postinst script
+  * Add DDNS_TEST_MODE to configuration validation tests
+  * Fix CI/CD compatibility for containerized test environments
+  * Improve package installation reliability
+
+ -- ddns-updater <maintainer@example.com>  Thu, 03 Oct 2025 14:00:00 +0000
+
 ddns-updater (1.2.4-1) unstable; urgency=medium
 
   * Add comprehensive Docker deployment support
