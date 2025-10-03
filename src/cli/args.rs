@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[derive(Parser, Debug)]
 #[command(name = "ddns_updater")]
 #[command(about = "A DDNS updater that manages nginx allow lists")]
-#[command(version = "0.1.0")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 pub struct Args {
     /// Host to check for IP changes
     #[arg(long, default_value = "google.com")]
