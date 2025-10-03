@@ -1,6 +1,5 @@
-# Post-installation script for ddns-updater package
-
 #!/bin/bash
+# Post-installation script for ddns-updater package
 set -e
 
 case "$1" in
