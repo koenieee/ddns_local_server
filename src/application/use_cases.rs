@@ -190,7 +190,7 @@ impl DdnsApplication {
         result
     }
 
-    /// Update DDNS for multiple configuration files
+    /// Update DDNS for multiple configuration files - optimized to check IP first
     pub async fn update_ddns_multiple(
         &self,
         hostname: &str,
@@ -198,6 +198,60 @@ impl DdnsApplication {
     ) -> Result<MultiConfigResult, Box<dyn std::error::Error + Send + Sync>> {
         let mut successes = Vec::new();
         let mut errors = Vec::new();
+
+        // Check IP change first - if no change, skip processing all files
+        let current_ip = match self.network_service.resolve_hostname(hostname).await {
+            Ok(ips) if !ips.is_empty() => ips[0],
+            Ok(_) => {
+                let error_msg = format!("Could not resolve hostname: {}", hostname);
+                for config_path in config_paths {
+                    errors.push((config_path, error_msg.clone()));
+                }
+                return Ok(MultiConfigResult { successes, errors });
+            }
+            Err(e) => {
+                let error_msg = e.to_string();
+                for config_path in config_paths {
+                    errors.push((config_path, error_msg.clone()));
+                }
+                return Ok(MultiConfigResult { successes, errors });
+            }
+        };
+
+        let stored_ip = match self.ip_repository.load_ip(hostname).await {
+            Ok(ip) => ip,
+            Err(e) => {
+                let error_msg = format!("Failed to load stored IP: {}", e);
+                for config_path in config_paths {
+                    errors.push((config_path, error_msg.clone()));
+                }
+                return Ok(MultiConfigResult { successes, errors });
+            }
+        };
+
+        // If IP hasn't changed, return NoChange for all configs without processing them
+        if let Some(old_ip) = stored_ip {
+            if old_ip == current_ip {
+                if self.config.verbose {
+                    println!(
+                        "ℹ️  No IP change detected ({}), skipping all config file processing",
+                        current_ip
+                    );
+                }
+                for _config_path in &config_paths {
+                    successes.push(UpdateResult::NoChange { ip: current_ip });
+                }
+                return Ok(MultiConfigResult { successes, errors });
+            }
+        }
+
+        // IP has changed (or no stored IP), process only configs that need actual updates
+        if self.config.verbose {
+            println!(
+                "🔄 IP change detected, processing {} config files",
+                config_paths.len()
+            );
+        }
 
         for config_path in config_paths {
             match self.update_ddns(hostname, config_path.clone()).await {

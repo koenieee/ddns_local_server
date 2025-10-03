@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.6] - 2025-10-03
+
+### Added
+- **Selective Config Processing**: Major performance optimization for multi-config setups
+  - Smart IP change detection: Only process configs when IP actually changes
+  - File-specific validation: Only update configs that contain the old IP address
+  - Conditional backup creation: Only create backups when files will actually be modified
+  - Early termination: Skip all processing when no IP change is detected
+  - Significantly improved performance when managing many configuration files
+
+### Enhanced
+- **Security Hardening**: Restricted systemd file permissions to specific nginx subdirectories
+  - Limited write access from `/data/nginx` to `/data/nginx/proxy_host` only
+  - Applied principle of least privilege to systemd ReadWritePaths configuration
+  - Enhanced Docker security documentation with permission scope clarification
+  - Updated both standard and templated systemd service files
+
+### Performance
+- **Optimized Multi-Config Workflows**: 
+  - Processes only configs that need updates instead of all configs blindly
+  - Eliminates unnecessary file I/O operations and backup creation
+  - Reduces server reload frequency by skipping unchanged configurations
+  - Maintains data safety while improving efficiency for large deployments
+
 ## [1.2.5] - 2025-10-03
 
 ### Fixed

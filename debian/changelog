@@ -1,3 +1,16 @@
+ddns-updater (1.2.6-1) unstable; urgency=medium
+
+  * Major performance optimization: Selective config processing
+  * Smart IP change detection - only process when IP actually changes
+  * File-specific validation - only update configs containing old IP
+  * Conditional backup creation - only backup files being modified
+  * Security hardening: Restrict systemd permissions to nginx subdirectories
+  * Limit write access from /data/nginx to /data/nginx/proxy_host only
+  * Enhanced Docker security documentation with permission scope
+  * Significant performance improvement for multi-config deployments
+
+ -- ddns-updater <maintainer@example.com>  Thu, 03 Oct 2025 16:00:00 +0000
+
 ddns-updater (1.2.5-1) unstable; urgency=medium
 
   * Fix postinst script syntax error during package installation

@@ -110,7 +110,27 @@ impl DdnsUpdateService {
         // Only proceed with backup and update if we have an IP change
         eprintln!("DEBUG: IP has changed, proceeding with backup and update");
 
-        // Create backup before modification (only when IP changes)
+        // First, check if this specific config file actually needs updating
+        // by checking if the old IP exists in this file
+        let needs_update = if let Some(old_ip) = stored_ip {
+            self.web_server_handler
+                .check_ip_in_config(config, old_ip)
+                .await?
+        } else {
+            // No stored IP, check if current IP is already in config
+            !self
+                .web_server_handler
+                .check_ip_in_config(config, current_ip)
+                .await?
+        };
+
+        if !needs_update {
+            eprintln!("DEBUG: Config file doesn't contain old IP, no update needed for this file");
+            return Ok(UpdateResult::NoChange { ip: current_ip });
+        }
+
+        // Create backup only when we're actually going to modify the file
+        eprintln!("DEBUG: Creating backup before modifying config file");
         let backup_path = self.web_server_handler.create_backup(config).await?;
 
         // Update the web server configuration

@@ -34,7 +34,8 @@ StandardError=journal
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/backups/nginx /etc/nginx /var/lib/ddns-updater /data/nginx /app/data/nginx /opt/nginx
+# Only grant write access to specific nginx config subdirectories and required system paths
+ReadWritePaths=/var/backups/nginx /etc/nginx /var/lib/ddns-updater /data/nginx/proxy_host /app/data/nginx/proxy_host /opt/nginx
 PrivateTmp=true
 ProtectKernelTunables=true
 ProtectKernelModules=true

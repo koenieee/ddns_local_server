@@ -15,7 +15,8 @@ This error occurs when DDNS Updater cannot write to nginx configuration files be
 ### 1. Ensure Volumes Have Write Permissions
 
 ```bash
-# ✅ Correct - Mount with read-write permissions
+# ✅ Correct - Mount nginx data with read-write permissions
+# DDNS updater will only modify files in /data/nginx/proxy_host
 docker run -v /host/nginx:/data/nginx:rw yourimage
 
 # ❌ Incorrect - Read-only mount (default for some setups)
@@ -30,7 +31,7 @@ services:
   ddns-updater:
     image: your-ddns-updater-image
     volumes:
-      # Ensure :rw (read-write) is specified or implied
+      # Mount nginx data directory (DDNS updater only modifies proxy_host subdirectory)
       - /host/nginx/config:/data/nginx:rw
       - /host/backups:/var/backups/nginx:rw
       - /host/ddns-storage:/var/lib/ddns-updater:rw
@@ -66,6 +67,8 @@ sudo ./scripts/fix-docker-permissions.sh
 --config-dir /data/nginx/proxy_host
 --backup-dir /var/backups/nginx
 ```
+
+**Security Note**: While the Docker volume mounts the entire `/data/nginx` directory, DDNS Updater is systemd-restricted to only write to `/data/nginx/proxy_host` and backup directories for security.
 
 ### Standard Nginx
 ```bash
