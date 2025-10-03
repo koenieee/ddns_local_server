@@ -33,15 +33,23 @@ impl CliInterface {
             Err(_) => false,
         };
 
-        let storage_dir = if std::env::var("DDNS_TEST_MODE").is_ok() || !can_use_var_lib {
-            // Use local directory for tests or when /var/lib is not writable
+        let storage_dir = if std::env::var("DDNS_TEST_MODE").is_ok() {
+            // Use local directory for tests only
             let local_dir = PathBuf::from("./test_storage");
             if args.verbose {
-                println!("Using local storage directory: {}", local_dir.display());
+                println!("Using test storage directory: {}", local_dir.display());
             }
             local_dir
-        } else {
+        } else if can_use_var_lib {
+            // Production: use /var/lib/ddns-updater
             PathBuf::from("/var/lib/ddns-updater")
+        } else {
+            // Fallback: use /tmp/ddns-updater (writable system directory)
+            let fallback_dir = PathBuf::from("/tmp/ddns-updater");
+            if args.verbose {
+                println!("Using fallback storage directory: {}", fallback_dir.display());
+            }
+            fallback_dir
         };
 
         // Determine backup directory
