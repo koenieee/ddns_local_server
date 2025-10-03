@@ -228,19 +228,29 @@ impl WebServerHandler for NginxHandler {
 
         for (command, args) in &reload_methods {
             attempts += 1;
-            eprintln!("Attempt {}: Trying {} {}", attempts, command, args.join(" "));
-            
+            eprintln!(
+                "Attempt {}: Trying {} {}",
+                attempts,
+                command,
+                args.join(" ")
+            );
+
             match Command::new(command).args(args).output() {
                 Ok(output) => {
                     if output.status.success() {
-                        eprintln!("✅ Nginx reloaded successfully using: {} {}", command, args.join(" "));
+                        eprintln!(
+                            "✅ Nginx reloaded successfully using: {} {}",
+                            command,
+                            args.join(" ")
+                        );
                         return Ok(());
                     } else {
                         let stderr = String::from_utf8_lossy(&output.stderr);
                         let stdout = String::from_utf8_lossy(&output.stdout);
                         last_error = format!(
-                            "Command '{}' failed with exit code {}: stderr: '{}', stdout: '{}'",
-                            format!("{} {}", command, args.join(" ")),
+                            "Command '{} {}' failed with exit code {}: stderr: '{}', stdout: '{}'",
+                            command,
+                            args.join(" "),
                             output.status.code().unwrap_or(-1),
                             stderr.trim(),
                             stdout.trim()
