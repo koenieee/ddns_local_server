@@ -185,9 +185,9 @@ else
     echo -e "${YELLOW}⚠ bc not found, skipping precise timing${NC}"
 fi
 
-# Batch processing test with github.com
+# Batch processing test - verifies race condition fix
 print_section "Batch Processing Test"
-echo "Testing batch update functionality with github.com hostname..."
+echo "Testing batch update functionality to verify race condition fix..."
 
 # Create temporary test directory and config files
 BATCH_TEST_DIR="test_batch_github"
@@ -197,22 +197,22 @@ BATCH_ERRORS=0
 mkdir -p "$BATCH_TEST_DIR" "$BATCH_STORAGE_DIR"
 
 # Create test config files with old IP
-OLD_IP="192.168.1.100"  # Use a different IP that github.com won't resolve to
-NEW_IP="140.82.121.3"   # github.com resolves to this single IP
-HOSTNAME="github.com"
+OLD_IP="10.0.0.100"     # Use a clearly different IP that won't resolve to github.com
+HOSTNAME="github.com"   # github.com resolves to a single stable IP
+TOTAL_FILES=5           # Test with 5 files to better catch race conditions
 
-echo "Testing batch processing with OLD_IP: ${OLD_IP} → NEW_IP: ${NEW_IP}"
+echo "Creating $TOTAL_FILES test config files with old IP: ${OLD_IP}"
 
-for i in {1..3}; do
-    cat > "$BATCH_TEST_DIR/config${i}.conf" << EOF
+for i in $(seq 1 $TOTAL_FILES); do
+    cat > "$BATCH_TEST_DIR/site${i}.conf" << EOF
 server {
     listen 80;
-    server_name test${i}.example.com;
+    server_name site${i}.test.com;
     
     location / {
         allow ${OLD_IP};
         deny all;
-        proxy_pass http://backend;
+        proxy_pass http://upstream;
     }
 }
 EOF
@@ -229,37 +229,50 @@ cat > "$BATCH_STORAGE_DIR/${HOSTNAME}.json" << EOF
 }
 EOF
 
-echo "Created test files with old IP: ${OLD_IP}"
-
-# Run batch update test
 echo "Running batch update test..."
 if DDNS_TEST_MODE=1 DDNS_STORAGE_DIR="$BATCH_STORAGE_DIR" DDNS_BACKUP_DIR="$BATCH_TEST_DIR/backups" \
    cargo run --quiet -- --host "$HOSTNAME" --config-dir "$BATCH_TEST_DIR" --pattern "*.conf" --no-reload >/dev/null 2>&1; then
     
-    # Verify all config files were updated
-    UPDATED_COUNT=0
-    for i in {1..3}; do
-        if grep -q "allow ${NEW_IP}" "$BATCH_TEST_DIR/config${i}.conf" 2>/dev/null; then
-            ((UPDATED_COUNT++))
-        else
-            echo -e "    ${RED}✗ config${i}.conf was not updated${NC}"
-            ((BATCH_ERRORS++))
-        fi
-    done
-    
-    # Verify stored IP was updated
-    if grep -q "\"ip\": \"${NEW_IP}\"" "$BATCH_STORAGE_DIR/${HOSTNAME}.json" 2>/dev/null; then
-        echo -e "    ${GREEN}✓ Stored IP updated correctly${NC}"
-    else
-        echo -e "    ${RED}✗ Stored IP was not updated${NC}"
-        ((BATCH_ERRORS++))
+    # Get the new IP that was actually applied (github.com resolves to)
+    NEW_IP=""
+    if [ -f "$BATCH_TEST_DIR/site1.conf" ]; then
+        NEW_IP=$(grep "allow" "$BATCH_TEST_DIR/site1.conf" | head -1 | sed 's/.*allow \([^;]*\);.*/\1/' 2>/dev/null)
     fi
     
-    if [ $UPDATED_COUNT -eq 3 ] && [ $BATCH_ERRORS -eq 0 ]; then
-        echo -e "${GREEN}✓ Batch processing test passed - all 3 config files updated${NC}"
-    else
-        echo -e "${RED}❌ Batch processing test failed - only ${UPDATED_COUNT}/3 files updated${NC}"
+    if [ -z "$NEW_IP" ] || [ "$NEW_IP" = "$OLD_IP" ]; then
+        echo -e "    ${RED}✗ Could not determine new IP or IP unchanged${NC}"
         ((BATCH_ERRORS++))
+    else
+        echo "Verifying all files updated consistently to: $NEW_IP"
+        
+        # Verify all config files were updated to the same IP
+        UPDATED_COUNT=0
+        for i in $(seq 1 $TOTAL_FILES); do
+            if grep -q "allow ${NEW_IP}" "$BATCH_TEST_DIR/site${i}.conf" 2>/dev/null; then
+                ((UPDATED_COUNT++))
+            else
+                current_ip=$(grep "allow" "$BATCH_TEST_DIR/site${i}.conf" | head -1 | sed 's/.*allow \([^;]*\);.*/\1/' 2>/dev/null)
+                echo -e "    ${RED}✗ site${i}.conf: has ${current_ip}, expected ${NEW_IP}${NC}"
+                ((BATCH_ERRORS++))
+            fi
+        done
+        
+        # Verify stored IP was updated
+        if grep -q "\"ip\": \"${NEW_IP}\"" "$BATCH_STORAGE_DIR/${HOSTNAME}.json" 2>/dev/null; then
+            echo -e "    ${GREEN}✓ Stored IP updated correctly to ${NEW_IP}${NC}"
+        else
+            stored_ip=$(grep '"ip":' "$BATCH_STORAGE_DIR/${HOSTNAME}.json" | sed 's/.*"ip": "\([^"]*\)".*/\1/' 2>/dev/null)
+            echo -e "    ${RED}✗ Stored IP is ${stored_ip}, expected ${NEW_IP}${NC}"
+            ((BATCH_ERRORS++))
+        fi
+        
+        if [ $UPDATED_COUNT -eq $TOTAL_FILES ] && [ $BATCH_ERRORS -eq 0 ]; then
+            echo -e "${GREEN}✓ All ${TOTAL_FILES} config files updated consistently${NC}"
+            echo -e "${GREEN}✓ Race condition fix verified - IP changed: ${OLD_IP} → ${NEW_IP}${NC}"
+        else
+            echo -e "${RED}❌ Race condition detected - only ${UPDATED_COUNT}/${TOTAL_FILES} files updated${NC}"
+            ((BATCH_ERRORS++))
+        fi
     fi
 else
     echo -e "${RED}❌ Batch processing command failed${NC}"
@@ -271,6 +284,7 @@ rm -rf "$BATCH_TEST_DIR" "$BATCH_STORAGE_DIR"
 
 if [ $BATCH_ERRORS -gt 0 ]; then
     echo -e "${RED}❌ Batch processing test failed with $BATCH_ERRORS error(s)${NC}"
+    echo -e "${RED}❌ This indicates the race condition fix is not working properly${NC}"
     exit 1
 else
     echo -e "${GREEN}✓ Batch processing test completed successfully${NC}"
