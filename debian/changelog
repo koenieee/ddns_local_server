@@ -1,3 +1,15 @@
+ddns-updater (1.2.2-1) unstable; urgency=medium
+
+  * Enforce persistent storage in /var/lib/ddns-updater only
+  * Remove /tmp fallback to prevent data loss across reboots
+  * Enhanced installation script creates storage directory automatically
+  * Updated systemd service files for persistent storage only
+  * Added comprehensive persistent storage documentation
+  * Improved error handling for storage accessibility issues
+  * Better data persistence and system reliability
+
+ -- DDNS Updater Team <dev@example.com>  Thu, 03 Oct 2025 12:00:00 +0000
+
 ddns-updater (1.2.1-1) unstable; urgency=medium
 
   * Enhanced JSON storage with full absolute path logging

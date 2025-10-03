@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.2] - 2025-10-03
+
+### Changed
+- **Persistent Storage Enforcement**: Removed /tmp fallback to ensure data persistence
+  - Application now only uses /var/lib/ddns-updater for JSON storage
+  - Eliminates data loss from temporary directory cleanup
+  - Provides clear error messages when persistent storage unavailable
+- **Enhanced Installation**: Installation script now creates storage directory automatically
+  - Proper permissions and ownership configuration
+  - Eliminates manual setup steps for storage directory
+- **Improved systemd Configuration**: Updated service files for persistent storage only
+  - Removed /tmp/ddns-updater from ReadWritePaths
+  - Ensures consistent storage location across all deployments
+
+### Added
+- **Comprehensive Documentation**: Added PERSISTENT_STORAGE.md
+  - Detailed explanation of storage configuration
+  - Troubleshooting guide for storage issues
+  - Migration instructions for existing installations
+
+### Fixed
+- Data persistence across system reboots and maintenance
+- Consistent storage behavior between different installation methods
+
 ## [1.2.1] - 2025-10-03
 
 ### Changed
