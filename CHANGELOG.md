@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.6] - 2025-01-03
+
+### Security
+- **Dependency Updates**: Fixed critical security vulnerabilities
+  - Updated `lettre` from 0.10.4 to 0.11.18
+  - Fixed RUSTSEC-2024-0421: `idna` vulnerability (updated to 1.1.0)
+  - Fixed RUSTSEC-2025-0009: `ring` AES panic vulnerability (updated to 0.17.14)
+  - Fixed RUSTSEC-2025-0010: `ring` unmaintained warning (updated to maintained version)
+  - All security audits now pass with zero vulnerabilities
+
+### Changed
+- **Email System**: Updated to use latest `lettre` crate with improved security
+- **Build Dependencies**: All dependencies updated to latest secure versions
+
 ## [1.1.5] - 2025-01-03
 
 ### Fixed

@@ -1,6 +1,6 @@
 [package]
 name = "ddns_updater"
-version = "1.1.5"
+version = "1.1.6"
 edition = "2021"  # Use 2021 edition for better compatibility
 default-run = "ddns_updater"
 rust-version = "1.82"  # Specify minimum Rust version for Debian 12
@@ -17,7 +17,7 @@ reqwest = { version = "0.11.18", features = ["json", "rustls-tls"], default-feat
 url = "2.4.0"
 thiserror = "1.0.44"
 # Email notification dependencies
-lettre = { version = "0.10.4", default-features = false, features = ["tokio1-rustls-tls"] }
+lettre = { version = "0.11.18", default-features = false, features = ["tokio1-rustls-tls"] }
 
 [dev-dependencies]
 tempfile = "3.6.0"
