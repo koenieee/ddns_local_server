@@ -66,12 +66,29 @@ fix_directory_permissions() {
         if getent passwd ddns-updater >/dev/null 2>&1; then
             # Get directory owner group
             dir_group=$(stat -c '%G' "$dir_path" 2>/dev/null || echo "")
-            if [ -n "$dir_group" ] && [ "$dir_group" != "root" ]; then
-                if getent group "$dir_group" >/dev/null 2>&1; then
+            print_status "Directory owned by group: $dir_group"
+            
+            if [ -n "$dir_group" ] && [ "$dir_group" != "ddns-updater" ]; then
+                if [ "$dir_group" = "root" ]; then
+                    print_warning "Directory owned by root group"
+                    print_status "Service should run as root to access this directory"
+                    print_status "This is the default configuration for systemd services"
+                elif getent group "$dir_group" >/dev/null 2>&1; then
                     print_status "Adding ddns-updater user to group: $dir_group"
                     usermod -a -G "$dir_group" ddns-updater 2>/dev/null || true
+                    print_success "Added ddns-updater user to $dir_group group"
+                else
+                    print_warning "Group $dir_group does not exist"
                 fi
             fi
+            
+            # Also add to common nginx groups if they exist
+            for group in nginx www-data; do
+                if [ "$group" != "$dir_group" ] && getent group "$group" >/dev/null 2>&1; then
+                    print_status "Adding ddns-updater user to $group group"
+                    usermod -a -G "$group" ddns-updater 2>/dev/null || true
+                fi
+            done
         fi
     else
         print_warning "$description not found: $dir_path"

@@ -45,19 +45,32 @@ case "$1" in
         for nginx_dir in "${NGINX_DIRS[@]}"; do
             if [ -d "$nginx_dir" ]; then
                 echo "Found nginx directory: $nginx_dir"
-                # Add ddns-updater user to the group that owns the directory
+                # Get the group that owns the directory
+                dir_group=$(stat -c '%G' "$nginx_dir" 2>/dev/null || echo "")
+                echo "Directory group: $dir_group"
+                
                 if [ -w "$nginx_dir" ]; then
                     echo "Directory $nginx_dir is writable by root"
-                    # Add ddns-updater to nginx group if it exists
-                    if getent group nginx >/dev/null 2>&1; then
-                        usermod -a -G nginx ddns-updater 2>/dev/null || true
-                        echo "Added ddns-updater user to nginx group"
+                    
+                    # Add ddns-updater user to the directory's group (but not root for security)
+                    if [ -n "$dir_group" ] && [ "$dir_group" != "ddns-updater" ] && [ "$dir_group" != "root" ]; then
+                        if getent group "$dir_group" >/dev/null 2>&1; then
+                            usermod -a -G "$dir_group" ddns-updater 2>/dev/null || true
+                            echo "Added ddns-updater user to $dir_group group"
+                        else
+                            echo "Warning: Group $dir_group does not exist"
+                        fi
+                    elif [ "$dir_group" = "root" ]; then
+                        echo "Directory owned by root group - service will run as root for write access"
                     fi
-                    # Also add to www-data group if it exists (common in Docker)
-                    if getent group www-data >/dev/null 2>&1; then
-                        usermod -a -G www-data ddns-updater 2>/dev/null || true
-                        echo "Added ddns-updater user to www-data group"
-                    fi
+                    
+                    # Also add to common nginx groups if they exist and are different
+                    for group in nginx www-data; do
+                        if [ "$group" != "$dir_group" ] && getent group "$group" >/dev/null 2>&1; then
+                            usermod -a -G "$group" ddns-updater 2>/dev/null || true
+                            echo "Added ddns-updater user to $group group"
+                        fi
+                    done
                 else
                     echo "Warning: Directory $nginx_dir is not writable by root"
                     echo "This may be a read-only mounted volume in Docker"
