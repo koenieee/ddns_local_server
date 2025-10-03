@@ -50,8 +50,19 @@ impl IpRepository for FileIpRepository {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let entry = IpEntry::new(ip, hostname.to_string(), None);
         let file_path = self.get_file_path(hostname);
+        let absolute_path = std::fs::canonicalize(&file_path)
+            .unwrap_or_else(|_| {
+                // If file doesn't exist, construct absolute path manually
+                std::env::current_dir()
+                    .map(|cwd| cwd.join(&file_path))
+                    .unwrap_or_else(|_| file_path.clone())
+            });
+        eprintln!("DEBUG: Storing IP {} for {} in JSON file: {}", ip, hostname, absolute_path.display());
         let json = serde_json::to_string_pretty(&entry)?;
-        async_fs::write(file_path, json).await?;
+        async_fs::write(&file_path, json).await?;
+        let final_absolute_path = std::fs::canonicalize(&file_path)
+            .unwrap_or_else(|_| file_path.clone());
+        eprintln!("DEBUG: Successfully stored JSON file at: {}", final_absolute_path.display());
         Ok(())
     }
 
@@ -60,13 +71,24 @@ impl IpRepository for FileIpRepository {
         hostname: &str,
     ) -> Result<Option<IpAddr>, Box<dyn std::error::Error + Send + Sync>> {
         let file_path = self.get_file_path(hostname);
+        let absolute_path = std::fs::canonicalize(&file_path)
+            .unwrap_or_else(|_| {
+                // If file doesn't exist, construct absolute path manually
+                std::env::current_dir()
+                    .map(|cwd| cwd.join(&file_path))
+                    .unwrap_or_else(|_| file_path.clone())
+            });
+        eprintln!("DEBUG: Checking for existing JSON file: {}", absolute_path.display());
 
         if !file_path.exists() {
+            eprintln!("DEBUG: JSON file does not exist: {}", absolute_path.display());
             return Ok(None);
         }
 
-        let content = async_fs::read_to_string(file_path).await?;
+        eprintln!("DEBUG: Loading IP from JSON file: {}", absolute_path.display());
+        let content = async_fs::read_to_string(&file_path).await?;
         let entry: IpEntry = serde_json::from_str(&content)?;
+        eprintln!("DEBUG: Loaded IP {} from JSON file: {}", entry.ip, absolute_path.display());
         Ok(Some(entry.ip))
     }
 

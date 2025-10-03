@@ -20,6 +20,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Backup files no longer created for no-change scenarios
 - Package removal now cleans up all traces of the application
 
+## [1.2.1] - 2025-10-03
+
+### Added
+- **Full Absolute Path Logging**: Enhanced JSON file path display with complete filesystem paths
+  - Shows absolute paths instead of relative paths for all JSON file operations
+  - Improved debugging visibility for file storage locations
+  - Better troubleshooting support with precise file path information
+
+### Changed
+- **Backup Optimization**: Backups now only created when IP actually changes
+  - Reduces unnecessary backup file creation
+  - Cleaner backup directory management
+  - More efficient operation when no changes are needed
+
 ## [1.2.0] - 2025-10-03
 
 ### Added

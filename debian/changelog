@@ -1,3 +1,15 @@
+ddns-updater (1.2.1-1) unstable; urgency=medium
+
+  * Enhanced JSON storage with full absolute path logging
+  * Improved debugging output showing complete file paths
+  * Smart JSON file creation and IP presence checking
+  * Non-intrusive updates (only modify existing entries)
+  * Enhanced Apache configuration support
+  * Better backup management (only create backups when IP changes)
+  * Comprehensive logging improvements for troubleshooting
+
+ -- GitHub Actions <action@github.com>  Thu, 03 Oct 2025 10:30:00 +0000
+
 ddns-updater (1.0.0-1) unstable; urgency=medium
 
   * Major release v1.0.0 - Production ready
