@@ -39,6 +39,7 @@ impl FileIpRepository {
     fn get_file_path(&self, hostname: &str) -> PathBuf {
         self.storage_dir.join(format!("{}.json", hostname))
     }
+
 }
 
 #[async_trait]
@@ -159,6 +160,28 @@ impl IpRepository for FileIpRepository {
         } else {
             Ok(false)
         }
+    }
+
+    /// Initialize DNS host file if it doesn't exist yet (FileIpRepository implementation)
+    async fn initialize_host_file(&self, hostname: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        let file_path = self.get_file_path(hostname);
+        
+        // Only create if file doesn't exist
+        if file_path.exists() {
+            return Ok(false);
+        }
+
+        // Create an initial entry with placeholder IP (will be updated on first run)
+        let initial_entry = IpEntry::new(
+            "0.0.0.0".parse()?, // Placeholder IP - will be updated immediately
+            hostname.to_string(),
+            Some("Initial DNS host file created at first startup".to_string())
+        );
+        
+        let json = serde_json::to_string_pretty(&initial_entry)?;
+        async_fs::write(&file_path, json).await?;
+        
+        Ok(true)
     }
 }
 

@@ -25,6 +25,13 @@ pub trait IpRepository: Send + Sync {
         &self,
         hostname: &str,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>>;
+    
+    /// Initialize DNS host file if it doesn't exist yet (optional for implementations that support it)
+    async fn initialize_host_file(&self, hostname: &str) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        // Default implementation does nothing - only FileIpRepository implements this
+        let _ = hostname;
+        Ok(false)
+    }
 }
 
 /// Web server configuration handler trait

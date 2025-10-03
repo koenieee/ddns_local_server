@@ -112,6 +112,14 @@ impl CliInterface {
         // Create application instance
         let app = DdnsApplication::new(app_config)?;
 
+        // Initialize DNS host file on first startup (if it doesn't exist yet)
+        if let Err(e) = Self::initialize_dns_host_file(&app, &args).await {
+            if args.verbose {
+                eprintln!("Warning: Failed to initialize DNS host file: {}", e);
+            }
+            // Don't exit on initialization failure - just continue
+        }
+
         if args.verbose {
             println!("DDNS Updater - Multi-Server Allow List Manager (verbose mode)");
             println!("Host: {}", args.host);
@@ -209,5 +217,33 @@ impl CliInterface {
                 println!("\n🔥 Server configuration updated and reloaded successfully!");
             }
         }
+    }
+
+    /// Initialize DNS host file if it doesn't exist yet
+    /// This creates a placeholder JSON file for first-time setup
+    async fn initialize_dns_host_file(
+        app: &DdnsApplication,
+        args: &crate::cli::Args,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Only initialize in production mode (not in test mode)
+        if std::env::var("DDNS_TEST_MODE").is_ok() {
+            return Ok(());
+        }
+
+        // Get the IP repository from the application to call the initialization method
+        match app.initialize_host_file(&args.host).await {
+            Ok(was_created) => {
+                if was_created && args.verbose {
+                    println!("🆕 Created initial DNS host file for: {}", args.host);
+                    println!("   Location: /var/lib/ddns-updater/{}.json", args.host);
+                    println!("   The file will be updated with the actual IP on first run.");
+                }
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
+
+        Ok(())
     }
 }

@@ -366,4 +366,13 @@ impl DdnsApplication {
     ) -> Result<std::net::IpAddr, Box<dyn std::error::Error + Send + Sync>> {
         self.network_service.get_public_ip().await
     }
+
+    /// Initialize DNS host file if it doesn't exist yet
+    /// This creates a placeholder JSON file for first-time setup
+    pub async fn initialize_host_file(
+        &self,
+        hostname: &str,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        self.ip_repository.initialize_host_file(hostname).await
+    }
 }
