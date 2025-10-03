@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.4] - 2025-01-03
+
+### Added
+- **Docker Support**: Comprehensive Docker deployment capabilities
+  - Dynamic ReadWritePaths configuration in systemd services based on nginx directories
+  - Automated permission troubleshooting script (`scripts/fix-docker-permissions.sh`)
+  - Complete Docker deployment guide in `DOCKER.md`
+  - Support for Docker volume mounting with proper permission handling
+
+### Fixed
+- **Docker Container Compatibility**: Resolved "Read-only file system" errors in containerized environments
+- **CI/CD Test Mode**: Added `DDNS_TEST_MODE` environment variable for local storage testing
+  - Automatically uses `/tmp/ddns-updater` for storage when enabled
+  - Prevents filesystem access errors in CI/CD pipelines
+- **Root Group Security**: Enhanced handling of root group ownership
+  - Smart detection of root group ownership on nginx directories
+  - Security-conscious user management without compromising access
+  - Proper warning messages for security-sensitive configurations
+
+### Enhanced
+- **Nginx Directory Detection**: Improved multi-directory pattern recognition
+  - Support for `/etc/nginx/sites-available`, `/etc/nginx/conf.d`, and custom paths
+  - Dynamic systemd service configuration based on detected directories
+- **Permission Management**: Advanced Docker and traditional deployment permission handling
+  - Automatic user group assignment based on directory ownership
+  - Comprehensive permission diagnostics and troubleshooting
+
+### Documentation
+- **Docker Guide**: Complete containerization documentation with examples
+- **Troubleshooting**: Enhanced permission debugging tools and guides
+
 ## [1.2.3] - 2025-10-03
 
 ### Fixed
