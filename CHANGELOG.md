@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2025-01-03
+
+### Changed
+- **Backup Retention**: Reduced default backup retention from 30 days to 3 days
+  - Updated systemd service configuration to use 3-day retention
+  - Updated backup cleanup script default from 30 to 3 days
+  - Updated installation script options (1, 3, 7, 14 days with 3 as recommended)
+  - More aggressive cleanup prevents disk space accumulation
+- **Code Quality**: Applied consistent formatting for release build
+
 ## [1.1.3] - 2025-01-03
 
 ### Fixed

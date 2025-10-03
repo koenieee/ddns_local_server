@@ -1,0 +1,10 @@
+server {
+allow 23.192.228.80; 
+allow 142.250.102.113; 
+    listen 80;
+    server_name minimal.example.com;
+    
+    location / {
+        return 200 "Hello World";
+    }
+}

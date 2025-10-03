@@ -47,7 +47,10 @@ impl CliInterface {
             // Fallback: use /tmp/ddns-updater (writable system directory)
             let fallback_dir = PathBuf::from("/tmp/ddns-updater");
             if args.verbose {
-                println!("Using fallback storage directory: {}", fallback_dir.display());
+                println!(
+                    "Using fallback storage directory: {}",
+                    fallback_dir.display()
+                );
             }
             fallback_dir
         };

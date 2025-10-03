@@ -10,12 +10,12 @@ Type=oneshot
 User=root
 Group=root
 
-# Clean up backup files older than 30 days by default
+# Clean up backup files older than 3 days by default
 # This will be customized during installation
 ExecStartPre=/bin/sh -c 'echo "DDNS Cleanup Configuration: Directory=${DDNS_CLEANUP_BACKUP_DIR}, Retention=${DDNS_CLEANUP_RETENTION_DAYS} days, Verbose=${DDNS_CLEANUP_VERBOSE}"'
-ExecStart=/usr/bin/ddns-backup-cleanup --backup-dir /var/backups/nginx --days 30 --verbose
+ExecStart=/usr/bin/ddns-backup-cleanup --backup-dir /var/backups/nginx --days 3 --verbose
 Environment=DDNS_CLEANUP_BACKUP_DIR=/var/backups/nginx
-Environment=DDNS_CLEANUP_RETENTION_DAYS=30
+Environment=DDNS_CLEANUP_RETENTION_DAYS=3
 Environment=DDNS_CLEANUP_VERBOSE=true
 
 # Security settings

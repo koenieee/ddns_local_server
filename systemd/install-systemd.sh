@@ -26,7 +26,7 @@ if [[ "$1" == "--help" || "$1" == "-h" ]]; then
     echo "  Config Dir:     /etc/nginx/sites-available"
     echo "  Pattern:        *.conf"
     echo "  Backup Dir:     /var/backups/nginx"
-    echo "  Backup Cleanup: Enabled (30 days retention)"
+    echo "  Backup Cleanup: Enabled (3 days retention)"
     echo "  Interval:       5 minutes"
     echo "  Verbose:        Yes"
     echo "  Auto Reload:    Yes"
@@ -148,27 +148,27 @@ echo "Backup Cleanup Configuration:"
 read -p "Enable automatic cleanup of old backup files? [Y/n]: " ENABLE_CLEANUP
 if [[ "${ENABLE_CLEANUP,,}" =~ ^(n|no)$ ]]; then
     CLEANUP_ENABLED=false
-    CLEANUP_DAYS=30
+    CLEANUP_DAYS=3
 else
     CLEANUP_ENABLED=true
-    echo "  1) Keep backups for 7 days"
-    echo "  2) Keep backups for 14 days"
-    echo "  3) Keep backups for 30 days (recommended)"
-    echo "  4) Keep backups for 60 days"
+    echo "  1) Keep backups for 1 day"
+    echo "  2) Keep backups for 3 days (recommended)"
+    echo "  3) Keep backups for 7 days"
+    echo "  4) Keep backups for 14 days"
     echo "  5) Custom retention period"
-    read -p "Select retention period (1-5) [3]: " CLEANUP_CHOICE
-    CLEANUP_CHOICE=${CLEANUP_CHOICE:-3}
+    read -p "Select retention period (1-5) [2]: " CLEANUP_CHOICE
+    CLEANUP_CHOICE=${CLEANUP_CHOICE:-2}
     
     case $CLEANUP_CHOICE in
-        1) CLEANUP_DAYS=7 ;;
-        2) CLEANUP_DAYS=14 ;;
-        3) CLEANUP_DAYS=30 ;;
-        4) CLEANUP_DAYS=60 ;;
+        1) CLEANUP_DAYS=1 ;;
+        2) CLEANUP_DAYS=3 ;;
+        3) CLEANUP_DAYS=7 ;;
+        4) CLEANUP_DAYS=14 ;;
         5) 
             read -p "Enter custom retention days: " CUSTOM_DAYS
-            CLEANUP_DAYS=${CUSTOM_DAYS:-30}
+            CLEANUP_DAYS=${CUSTOM_DAYS:-3}
             ;;
-        *) CLEANUP_DAYS=30 ;;
+        *) CLEANUP_DAYS=3 ;;
     esac
 fi
 

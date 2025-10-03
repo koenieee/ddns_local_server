@@ -7,7 +7,7 @@ set -e
 
 # Default values
 BACKUP_DIR="/var/backups/nginx"
-DAYS=30
+DAYS=3
 VERBOSE=false
 DRY_RUN=false
 
@@ -20,7 +20,7 @@ Usage: $0 [OPTIONS]
 
 Options:
   --backup-dir DIR    Directory containing backup files (default: /var/backups/nginx)
-  --days DAYS         Delete files older than DAYS days (default: 30)
+  --days DAYS         Delete files older than DAYS days (default: 3)
   --verbose           Enable verbose output
   --dry-run           Show what would be deleted without actually deleting
   --help              Show this help message
