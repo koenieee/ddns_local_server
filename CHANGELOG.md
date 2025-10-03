@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.7] - 2025-10-03
+
+### Fixed
+- **Critical Batch Processing Race Condition**: Resolved issue where only the first config file was updated in multi-file scenarios
+  - Implemented deferred IP storage: All config files are processed before storing the new IP
+  - Added `update_file_only()` methods for atomic batch processing
+  - Ensures consistent updates across all configuration files containing the old IP
+  - Eliminates race condition that caused incomplete DDNS updates
+
+### Enhanced
+- **Comprehensive CI/CD Testing**: Added robust batch processing validation to test suite
+  - Enhanced batch processing test with 5 config files (up from 3) for better race condition detection
+  - Dynamic IP resolution instead of hardcoded values for improved test reliability
+  - Detailed error reporting with specific failure reasons for better debugging
+  - Integrated into main test_all.sh script for automated CI/CD pipeline validation
+
+### Improved
+- **Environment Variable Support**: Enhanced test mode with proper `DDNS_STORAGE_DIR` support
+  - Fixed environment variable handling in test mode for better test isolation
+  - Improved test infrastructure for reliable automated testing
+
 ## [1.2.6] - 2025-10-03
 
 ### Added

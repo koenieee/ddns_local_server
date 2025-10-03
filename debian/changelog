@@ -1,3 +1,15 @@
+ddns-updater (1.2.7-1) unstable; urgency=medium
+
+  * CRITICAL FIX: Resolved batch processing race condition
+  * Fixed issue where only first config file was updated in multi-file scenarios
+  * Implemented deferred IP storage for atomic batch processing
+  * Enhanced CI/CD testing with comprehensive batch processing validation
+  * Added environment variable support for improved test infrastructure
+  * Ensures consistent updates across all configuration files
+  * Eliminates incomplete DDNS updates in production environments
+
+ -- DDNS Updater Team <maintainer@example.com>  Thu, 03 Oct 2025 14:00:00 +0000
+
 ddns-updater (1.2.6-1) unstable; urgency=medium
 
   * Major performance optimization: Selective config processing
