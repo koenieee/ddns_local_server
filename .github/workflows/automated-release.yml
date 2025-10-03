@@ -108,10 +108,12 @@ jobs:
               sha256sum *.deb >> SHA256SUMS
               echo "Added .deb checksums to SHA256SUMS"
             fi
+            cd ..
           else
             echo "No .deb files found - skipping Debian package"
           fi
           
+          # Final listing of release files
           cd releases
           ls -la
       
