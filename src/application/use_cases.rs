@@ -368,18 +368,30 @@ impl DdnsApplication {
     }
 
     /// Initialize DNS host file if it doesn't exist yet
-    /// This resolves the hostname's IP and creates a JSON file with the real IP
+    /// This tries to resolve the hostname's IP and creates a JSON file with the real IP
+    /// Falls back to placeholder IP if resolution fails (e.g., in CI/CD environments)
     pub async fn initialize_host_file(
         &self,
         hostname: &str,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        // First resolve the hostname to get the current IP
-        let resolved_ips = self.network_service.resolve_hostname(hostname).await?;
-        let current_ip = resolved_ips
-            .first()
-            .ok_or_else(|| format!("Could not resolve hostname: {}", hostname))?;
+        // Try to resolve the hostname to get the current IP
+        let current_ip = match self.network_service.resolve_hostname(hostname).await {
+            Ok(resolved_ips) => {
+                match resolved_ips.first() {
+                    Some(ip) => *ip,
+                    None => {
+                        eprintln!("Warning: No IPs resolved for {}, using placeholder", hostname);
+                        "0.0.0.0".parse()?
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Warning: Failed to resolve {}: {}, using placeholder", hostname, e);
+                "0.0.0.0".parse()?
+            }
+        };
         
-        // Initialize the host file with the actual resolved IP
-        self.ip_repository.initialize_host_file(hostname, *current_ip).await
+        // Initialize the host file with the resolved IP (or placeholder if resolution failed)
+        self.ip_repository.initialize_host_file(hostname, current_ip).await
     }
 }

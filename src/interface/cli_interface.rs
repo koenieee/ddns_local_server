@@ -238,7 +238,7 @@ impl CliInterface {
                     };
                     println!("🆕 Created initial DNS host file for: {}", args.host);
                     println!("   Location: {}", location);
-                    println!("   Initialized with resolved IP address.");
+                    println!("   Initialized with DNS data.");
                 }
             }
             Err(e) => {
