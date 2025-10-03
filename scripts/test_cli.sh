@@ -3,7 +3,7 @@
 # DDNS Updater CLI Test Script
 # Tests the command line interface with various configuration scenarios
 
-set -e  # Exit on any error
+# Note: We don't use "set -e" here because we need to handle test failures gracefully
 
 echo "🧪 DDNS Updater CLI Test Suite"
 echo "=============================="
@@ -32,16 +32,18 @@ run_test() {
     local output
     local actual_exit_code
     
+    set +e  # Disable exit on error for this test
     output=$(DDNS_TEST_MODE=1 eval "$command" 2>&1)
     actual_exit_code=$?
+    set -e  # Re-enable exit on error (though not using set -e globally anymore)
     
     if [ $actual_exit_code -eq $expected_exit_code ]; then
         echo -e "${GREEN}✓ PASS${NC}"
-        ((TESTS_PASSED++))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         echo -e "${RED}✗ FAIL${NC} (expected exit code $expected_exit_code, got $actual_exit_code)"
         echo "Output: $output"
-        ((TESTS_FAILED++))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 }
 
@@ -56,18 +58,17 @@ run_verbose_test() {
     echo "Output:"
     echo "-------"
     
-    if DDNS_TEST_MODE=1 eval "$command"; then
-        actual_exit_code=0
-    else
-        actual_exit_code=$?
-    fi
+    set +e  # Disable exit on error for this test
+    DDNS_TEST_MODE=1 eval "$command"
+    actual_exit_code=$?
+    set -e  # Re-enable exit on error
     
     if [ $actual_exit_code -eq $expected_exit_code ]; then
         echo -e "${GREEN}✓ PASS${NC}"
-        ((TESTS_PASSED++))
+        TESTS_PASSED=$((TESTS_PASSED + 1))
     else
         echo -e "${RED}✗ FAIL${NC} (expected exit code $expected_exit_code, got $actual_exit_code)"
-        ((TESTS_FAILED++))
+        TESTS_FAILED=$((TESTS_FAILED + 1))
     fi
 }
 
@@ -113,7 +114,7 @@ echo -e "\n${YELLOW}Running verbose tests (with output)...${NC}"
 run_verbose_test "Verbose mode with valid config" "cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --verbose --no-reload"
 
 # Test 12: Pattern matching in config directory
-run_verbose_test "Pattern matching" "cargo run --quiet -- --config-dir test_configs/valid --pattern '*ssl*' --verbose --no-reload"
+run_verbose_test "Pattern matching" "cargo run --quiet -- --config-dir test_configs/valid --pattern complex* --verbose --no-reload"
 
 # Cleanup test backup directory if created
 if [ -d "test_backups" ]; then
