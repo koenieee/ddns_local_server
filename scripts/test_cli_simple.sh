@@ -113,7 +113,7 @@ else
 fi
 
 # Test 10: Hostname resolution verification (skip in CI)
-if [[ -z "$CI" && -z "$GITHUB_ACTIONS" ]]; then
+if [[ -z "$CI" && -z "$GITHUB_ACTIONS" && -z "$DDNS_CI_MODE" ]]; then
     echo -e "\n${BLUE}Test: Hostname resolution (different IPs for different hostnames)${NC}"
 
     # Clean up any existing test storage to ensure fresh start

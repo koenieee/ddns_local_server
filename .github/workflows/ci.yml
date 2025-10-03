@@ -16,6 +16,7 @@ jobs:
   rust-check:
     name: Rust Quality Checks
     runs-on: ubuntu-22.04  # Ubuntu 22.04 is compatible with Debian 12
+    timeout-minutes: 30  # Reasonable timeout for quality checks and comprehensive tests
 
     steps:
     - name: Checkout code
@@ -45,6 +46,9 @@ jobs:
       run: cargo test --verbose --all-features
       
     - name: Run comprehensive test suite
+      timeout-minutes: 10  # Comprehensive tests should complete within 10 minutes
+      env:
+        DDNS_CI_MODE: 1  # Skip network-dependent tests
       run: |
         chmod +x scripts/test_all.sh
         ./scripts/test_all.sh
@@ -54,6 +58,7 @@ jobs:
     name: Build (${{ matrix.target }})
     runs-on: ubuntu-22.04  # Ubuntu 22.04 is compatible with Debian 12
     needs: rust-check
+    timeout-minutes: 45  # Allow extra time for cross-compilation
     
     strategy:
       matrix:
@@ -146,6 +151,7 @@ jobs:
     name: Build Debian Package (${{ matrix.arch }})
     runs-on: ubuntu-22.04  # Ubuntu 22.04 is compatible with Debian 12
     needs: rust-check
+    timeout-minutes: 60  # Debian package building can take longer
     
     strategy:
       matrix:
@@ -230,6 +236,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [rust-check, build, debian-package]
     if: github.event_name == 'release' && github.event.action == 'published'
+    timeout-minutes: 15  # Release creation should be quick
     
     steps:
     - name: Checkout code
