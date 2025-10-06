@@ -111,13 +111,13 @@ jobs:
       uses: actions/checkout@v4
     
     - name: Download x86_64 binary
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: ddns_updater-x86_64-unknown-linux-gnu-debian12
         path: ./binaries/x86_64/
     
     - name: Download aarch64 binary
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: ddns_updater-aarch64-unknown-linux-gnu-debian12
         path: ./binaries/aarch64/
