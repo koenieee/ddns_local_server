@@ -28,7 +28,7 @@ jobs:
     
     # Use specific Rust version compatible with Debian 12
     - name: Install Rust toolchain
-      uses: dtolnay/rust-toolchain@1.82.0
+      uses: dtolnay/rust-toolchain@1.100.0
       with:
         targets: ${{ matrix.target }}
         components: rustfmt, clippy

@@ -23,7 +23,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@1.82.0  # Use Rust 1.82.0 for modern dependency compatibility
+      uses: dtolnay/rust-toolchain@1.100.0  # Use Rust 1.82.0 for modern dependency compatibility
       with:
         components: rustfmt, clippy
 
@@ -76,7 +76,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Setup Rust
-      uses: dtolnay/rust-toolchain@1.82.0  # Use Rust 1.82.0 for modern dependency compatibility
+      uses: dtolnay/rust-toolchain@1.100.0  # Use Rust 1.82.0 for modern dependency compatibility
       with:
         targets: ${{ matrix.target }}
 
