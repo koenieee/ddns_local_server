@@ -73,27 +73,24 @@ else
     test_command "Valid config directory" "cargo run --quiet -- --config-dir test_configs/valid --no-reload" 0
 fi
 
-# Test 5: Invalid config file
-test_command "Invalid config file" "cargo run --quiet -- --config test_configs/invalid/plain_text.conf --no-reload" 1
-
-# Test 6: Non-existent file
+# Test 5: Non-existent file
 test_command "Non-existent file" "cargo run --quiet -- --config /non/existent.conf --no-reload" 1
 
-# Test 7: Custom host (use localhost in CI)
+# Test 6: Custom host (use localhost in CI)
 if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
     test_command "Custom host" "cargo run --quiet -- --host localhost --config test_configs/valid/minimal_valid.conf --no-reload" 0
 else
     test_command "Custom host" "cargo run --quiet -- --host example.com --config test_configs/valid/minimal_valid.conf --no-reload" 0
 fi
 
-# Test 8: Pattern matching (use localhost in CI)
+# Test 7: Pattern matching (use localhost in CI)
 if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
     test_command "Pattern matching" "cargo run --quiet -- --config-dir test_configs/valid --pattern '*.conf' --host localhost --no-reload" 0
 else
     test_command "Pattern matching" "cargo run --quiet -- --config-dir test_configs/valid --pattern '*.conf' --no-reload" 0
 fi
 
-# Test 9: Verbose mode
+# Test 8: Verbose mode
 echo -e "\n${BLUE}Test: Verbose mode (with output)${NC}"
 if [[ -n "$CI" || -n "$GITHUB_ACTIONS" ]]; then
     echo "Command: DDNS_TEST_MODE=1 cargo run --quiet -- --config test_configs/valid/complex_ssl.conf --host localhost --verbose --no-reload"

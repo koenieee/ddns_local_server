@@ -271,9 +271,7 @@ impl DdnsApplication {
                     errors.push((config_path, error_msg));
                 }
             }
-        }
-
-        // Only store the new IP and send notification if at least one file was actually updated
+        } // Only store the new IP and send notification if at least one file was actually updated
         if any_updated {
             if let Err(e) = self.ip_repository.store_ip(hostname, current_ip).await {
                 // If we can't store the IP, treat it as an error but don't fail the whole operation
