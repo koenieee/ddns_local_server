@@ -15,7 +15,7 @@ chrono = { version = "0.4.26", features = ["serde"] }
 regex = "1.9.0"
 reqwest = { version = "0.11.18", features = ["json", "rustls-tls"], default-features = false }
 url = "2.4.0"
-thiserror = "1.0.44"
+thiserror = "2.0.17"
 # Email notification dependencies
 lettre = { version = "0.11.18", default-features = false, features = ["tokio1-rustls-tls"] }
 
