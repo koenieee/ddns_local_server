@@ -118,7 +118,7 @@ jobs:
           ls -la
       
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: "Release ${{ steps.version.outputs.version }}"
