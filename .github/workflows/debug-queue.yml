@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest  # Use standard runner first
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Debug info
       run: |
@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-22.04  # Test ubuntu-22.04 availability
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Debug info
       run: |

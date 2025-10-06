@@ -20,7 +20,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@1.82.0  # Use Rust 1.82.0 for modern dependency compatibility
@@ -73,7 +73,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@1.82.0  # Use Rust 1.82.0 for modern dependency compatibility
@@ -166,7 +166,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Rust
       uses: dtolnay/rust-toolchain@stable
@@ -240,7 +240,7 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       
     - name: Download all artifacts
       uses: actions/download-artifact@v4
