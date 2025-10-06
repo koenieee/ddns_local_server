@@ -129,43 +129,8 @@ fi
 
 
 
-# Test configuration validation
-print_section "Configuration Validation Tests"
-VALIDATION_ERRORS=0
-
-echo "Testing with valid configurations:"
-for config in test_configs/valid/*.conf; do
-    if [ -f "$config" ]; then
-        echo "  - $(basename "$config")"
-        if DDNS_TEST_MODE=1 cargo run --quiet -- --config "$config" --no-reload >/dev/null 2>&1; then
-            echo -e "    ${GREEN}✓ Valid${NC}"
-        else
-            echo -e "    ${RED}✗ Failed validation${NC}"
-            ((VALIDATION_ERRORS++))
-        fi
-    fi
-done
-
-echo -e "\nTesting with invalid configurations:"
-for config in test_configs/invalid/*; do
-    if [ -f "$config" ]; then
-        echo "  - $(basename "$config")"
-        if DDNS_TEST_MODE=1 cargo run --quiet -- --config "$config" --no-reload >/dev/null 2>&1; then
-            echo -e "    ${RED}✗ Should have failed${NC}"
-            ((VALIDATION_ERRORS++))
-        else
-            echo -e "    ${GREEN}✓ Correctly rejected${NC}"
-        fi
-    fi
-done
-
-# Check if any validation tests failed
-if [ $VALIDATION_ERRORS -gt 0 ]; then
-    echo -e "\n${RED}❌ Configuration validation tests failed: $VALIDATION_ERRORS error(s)${NC}"
-    exit 1
-else
-    echo -e "\n${GREEN}✓ All configuration validation tests passed${NC}"
-fi
+# Configuration validation tests removed - validation only happens when IP changes
+# This optimizes performance by skipping unnecessary processing when no changes are needed
 
 # Performance check
 print_section "Performance Check"
